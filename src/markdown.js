@@ -7,6 +7,12 @@ let _markedRenderer = null;
 function _initMarked() {
     if (_markedRenderer || typeof marked === 'undefined') return;
     marked.setOptions({ breaks: true, gfm: true });
+
+    // Setup KaTeX extension if available
+    if (typeof markedKatex !== 'undefined') {
+        marked.use(markedKatex({ throwOnError: false }));
+    }
+
     _markedRenderer = new marked.Renderer();
     _markedRenderer.code = function (obj) {
         const code = typeof obj === 'object' ? obj.text : obj;
