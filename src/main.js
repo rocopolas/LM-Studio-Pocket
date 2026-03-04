@@ -7,9 +7,14 @@ import { renderConversationsList, renderChat } from './conversations.js';
 import { updateModelBadge, updateSearchButton } from './ui.js';
 import { fetchModels } from './api.js';
 
-function init() {
-    loadSettings();
-    loadConversations();
+async function init() {
+    try {
+        await loadSettings();
+        await loadConversations();
+    } catch (e) {
+        console.error('Failed to initialize storage:', e);
+    }
+
     initEventListeners();
     renderConversationsList();
 
