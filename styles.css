@@ -555,13 +555,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  max-width: 708px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* ===== Messages ===== */
 .message {
   display: flex;
   gap: 12px;
-  max-width: 95%;
+  max-width: 100%;
   animation: fadeInUp 0.3s ease;
 }
 
@@ -670,8 +673,22 @@ body {
   transition: transform var(--transition-fast);
 }
 
-details:not([open]) .reasoning-header svg {
+.reasoning-header.collapsed svg {
   transform: rotate(-90deg);
+}
+
+.reasoning-wrapper {
+  max-height: 2000px;
+  transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+  overflow: hidden;
+}
+
+.reasoning-wrapper.collapsed {
+  max-height: 0;
+}
+
+.reasoning-wrapper-inner {
+  padding: 0;
 }
 
 .reasoning-content {
@@ -680,6 +697,15 @@ details:not([open]) .reasoning-header svg {
   color: var(--text-secondary);
   line-height: 1.5;
   border-top: 1px solid rgba(167, 139, 250, 0.1);
+  transition: opacity 0.3s ease;
+  opacity: 1;
+}
+
+.reasoning-wrapper.collapsed .reasoning-content {
+  opacity: 0;
+  border-top-color: transparent;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 /* Markdown content styles */

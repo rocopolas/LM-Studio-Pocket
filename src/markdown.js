@@ -19,7 +19,7 @@ function _initMarked() {
         const lang = typeof obj === 'object' ? obj.lang : arguments[1];
         const highlighted = _highlightCode(code, lang);
         const langLabel = lang || 'code';
-        return `<pre><div class="code-header"><span>${escapeHtml(langLabel)}</span><button class="btn-copy-code" onclick="window.__copyCode(this)">📋 Copiar</button></div><code class="hljs language-${escapeHtml(langLabel)}">${highlighted}</code></pre>`;
+        return `<pre><div class="code-header"><span>${escapeHtml(langLabel)}</span><button class="btn-copy-code" onclick="window.__copyCode(event)">📋 Copiar</button></div><code class="hljs language-${escapeHtml(langLabel)}">${highlighted}</code></pre>`;
     };
 }
 
@@ -41,10 +41,24 @@ export function renderMarkdown(text) {
 }
 
 // Global handler for copy code buttons
-window.__copyCode = function (btn) {
-    const code = btn.closest('pre').querySelector('code').textContent;
+window.__copyCode = function (event) {
+    const btn = event.currentTarget || event.target;
+    // Find the nearest <pre> parent and then search for the <code> block inside it
+    const pre = btn.closest('pre');
+    if (!pre) return;
+
+    const codeEl = pre.querySelector('code');
+    if (!codeEl) return;
+
+    const code = codeEl.textContent;
     navigator.clipboard.writeText(code).then(() => {
+        const originalText = btn.innerHTML;
         btn.textContent = '✓ Copied';
-        setTimeout(() => { btn.innerHTML = '📋 Copiar'; }, 2000);
-    });
+        setTimeout(() => {
+            // Only revert if the button is still in the DOM and says Copied
+            if (btn.textContent === '✓ Copied') {
+                btn.innerHTML = originalText;
+            }
+        }, 2000);
+    }).catch(e => console.error('Failed to copy code:', e));
 };

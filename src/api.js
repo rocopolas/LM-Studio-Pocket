@@ -16,11 +16,14 @@ export function getHeaders() {
 
 export async function fetchModels() {
     if (!state.settings.serverUrl) return [];
-    const url = `/api/proxy/api/v1/models`;
-    const resp = await fetch(url, { headers: getHeaders() });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    return data.models || [];
+
+    // Fetch all downloaded models
+    const urlAll = `/api/proxy/api/v1/models`;
+    const respAll = await fetch(urlAll, { headers: getHeaders() });
+    if (!respAll.ok) throw new Error(`HTTP ${respAll.status}`);
+
+    const dataAll = await respAll.json();
+    return dataAll.models || [];
 }
 
 export async function sendChatStream(messages, onEvent, searchContext = '') {
@@ -39,8 +42,24 @@ export async function sendChatStream(messages, onEvent, searchContext = '') {
         }
     }
 
+    const selectedModelKey = conv?.model || state.settings.model;
+
+    // Check if we have a specific loaded instance for this model to avoid double-loading
+    // in LM Studio (which can happen if we send the generic key when it's already loaded under a specific ID).
+    let targetModelId = selectedModelKey;
+    if (state.models && state.models.length > 0) {
+        const modelInfo = state.models.find(m =>
+            m.key === selectedModelKey ||
+            m.key.endsWith(selectedModelKey) ||
+            (m.variants && m.variants.some(v => v.includes(selectedModelKey)))
+        );
+        if (modelInfo && modelInfo.loaded_instances && modelInfo.loaded_instances.length > 0) {
+            targetModelId = modelInfo.loaded_instances[0].id;
+        }
+    }
+
     const body = {
-        model: conv?.model || state.settings.model,
+        model: targetModelId,
         input: input,
         stream: true,
         temperature: state.settings.temperature,
@@ -68,6 +87,7 @@ export async function sendChatStream(messages, onEvent, searchContext = '') {
     if (state.settings.systemPrompt) {
         systemPrompt += state.settings.systemPrompt;
     }
+
     if (systemPrompt) {
         body.system_prompt = systemPrompt;
     }

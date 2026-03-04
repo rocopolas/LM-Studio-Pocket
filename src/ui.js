@@ -20,15 +20,19 @@ export function buildTypingHtml(label) {
     return `<div class="typing-indicator"><span></span><span></span><span></span></div>${label ? `<span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">${label}</span>` : ''}`;
 }
 
-export function buildReasoningHtml(reasoningText, isCollapsed = false) {
-    const openAttr = isCollapsed ? '' : 'open';
-    return `<details class="reasoning-block" ${openAttr}>
-    <summary class="reasoning-header">
+export function buildReasoningHtml(reasoningText, isStreaming = false) {
+    const collapsedClass = isStreaming ? '' : ' collapsed';
+    return `<div class="reasoning-block">
+    <div class="reasoning-header${collapsedClass}" onclick="this.classList.toggle('collapsed'); this.nextElementSibling.classList.toggle('collapsed')">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       Razonamiento
-    </summary>
-    <div class="reasoning-content">${renderMarkdown(reasoningText)}</div>
-  </details>`;
+    </div>
+    <div class="reasoning-wrapper${collapsedClass}">
+      <div class="reasoning-wrapper-inner">
+        <div class="reasoning-content">${renderMarkdown(reasoningText)}</div>
+      </div>
+    </div>
+  </div>`;
 }
 
 // ===== Scroll =====

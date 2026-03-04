@@ -119,21 +119,27 @@ export async function sendMessage() {
                 break;
             case 'reasoning.delta':
                 reasoningText += data.content || '';
+                if (domOk()) {
+                    const contentEl = assistantDiv.querySelector('.message-content');
+                    let reasoningBlock = contentEl.querySelector('.reasoning-block');
+                    if (!reasoningBlock) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = buildReasoningHtml(reasoningText);
+                        reasoningBlock = tempDiv.firstElementChild;
+                        contentEl.insertBefore(reasoningBlock, textEl);
+                    } else {
+                        const reasoningContentEl = reasoningBlock.querySelector('.reasoning-content');
+                        if (reasoningContentEl) {
+                            reasoningContentEl.innerHTML = renderMarkdown(reasoningText);
+                        }
+                    }
+                    scrollToBottom();
+                }
                 break;
             case 'reasoning.end':
                 isReasoning = false;
                 if (reasoningText) {
                     assistantMsg.reasoning = reasoningText;
-                    if (domOk()) {
-                        const contentEl = assistantDiv.querySelector('.message-content');
-                        let reasoningBlock = contentEl.querySelector('.reasoning-block');
-                        if (!reasoningBlock) {
-                            reasoningBlock = document.createElement('div');
-                            reasoningBlock.innerHTML = buildReasoningHtml(reasoningText, true);
-                            reasoningBlock = reasoningBlock.firstElementChild;
-                            contentEl.insertBefore(reasoningBlock, textEl);
-                        }
-                    }
                 }
                 break;
             case 'message.start':
