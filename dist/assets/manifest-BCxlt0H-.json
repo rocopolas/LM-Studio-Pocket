@@ -1,0 +1,16 @@
+{
+  "name": "LM Studio Pocket",
+  "short_name": "LM Studio Pocket",
+  "description": "Chat with AI models via LM Studio API",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%237c3aed'/><text x='50' y='68' font-size='48' text-anchor='middle' fill='white'>💬</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
