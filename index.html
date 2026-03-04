@@ -151,6 +151,14 @@
     <!-- Input Area -->
     <div class="input-area">
       <div class="input-wrapper">
+        <button id="btn-search" class="btn-icon btn-search" title="Toggle web search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+        </button>
         <button id="btn-attach" class="btn-icon btn-attach" title="Attach image">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
@@ -301,6 +309,35 @@
         <div class="form-group" id="memory-textarea-group">
           <textarea id="setting-memory" class="form-textarea" rows="4"
             placeholder="Ej: Mi nombre es Juan. Prefiero respuestas concisas. Trabajo con Python y React."></textarea>
+        </div>
+      </section>
+
+      <!-- Web Search (SearXNG) -->
+      <section class="settings-section">
+        <h3 class="settings-section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+          Web Search (SearXNG)
+        </h3>
+        <p class="settings-hint">Busca en internet con SearXNG antes de responder. Los resultados se inyectan como
+          contexto al LLM.</p>
+        <div class="form-group">
+          <label class="toggle-label">
+            <span>Activar búsqueda web</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-search-enabled">
+              <span class="toggle-slider"></span>
+            </label>
+          </label>
+        </div>
+        <div class="form-group" id="searxng-url-group">
+          <label for="setting-searxng-url">SearXNG URL</label>
+          <input type="url" id="setting-searxng-url" class="form-input" placeholder="http://127.0.0.1:8080"
+            value="http://127.0.0.1:8080">
         </div>
       </section>
 

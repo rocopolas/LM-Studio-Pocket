@@ -5,7 +5,7 @@ import state from './state.js';
 import { showToast, escapeHtml } from './utils.js';
 import { saveSettings } from './storage.js';
 import { fetchModels, getHeaders } from './api.js';
-import { updateModelBadge } from './ui.js';
+import { updateModelBadge, updateSearchButton } from './ui.js';
 
 export function openSettings() {
     populateSettingsForm();
@@ -32,6 +32,9 @@ function populateSettingsForm() {
     DOM.settingMemoryEnabled.checked = state.settings.memoryEnabled;
     DOM.settingMemory.value = state.settings.memory;
     DOM.memoryTextareaGroup.style.display = state.settings.memoryEnabled ? '' : 'none';
+    DOM.settingSearchEnabled.checked = state.settings.searchEnabled;
+    DOM.settingSearxngUrl.value = state.settings.searxngUrl;
+    DOM.searxngUrlGroup.style.display = state.settings.searchEnabled ? '' : 'none';
     updateParamLabels();
     populateModelSelect();
 }
@@ -50,8 +53,11 @@ export function saveSettingsFromForm() {
     state.settings.contextLength = parseInt(DOM.settingContextLength.value);
     state.settings.memoryEnabled = DOM.settingMemoryEnabled.checked;
     state.settings.memory = DOM.settingMemory.value;
+    state.settings.searchEnabled = DOM.settingSearchEnabled.checked;
+    state.settings.searxngUrl = DOM.settingSearxngUrl.value.replace(/\/+$/, '');
     saveSettings();
     updateModelBadge();
+    updateSearchButton();
     showToast('Settings saved', 'success');
     closeSettings();
 }

@@ -207,3 +207,41 @@ export function autoResize() {
     DOM.messageInput.style.height = 'auto';
     DOM.messageInput.style.height = Math.min(DOM.messageInput.scrollHeight, 180) + 'px';
 }
+
+// ===== Web Search UI =====
+
+import { saveSettings } from './storage.js';
+
+export function buildSearchSourcesHtml(sources) {
+    if (!sources || sources.length === 0) return '';
+    const items = sources.map(s =>
+        `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener" class="search-source-link" title="${escapeHtml(s.title)}">
+            <span class="source-index">[${s.index}]</span>
+            <span class="source-title">${escapeHtml(s.title)}</span>
+        </a>`
+    ).join('');
+    return `<div class="search-sources">
+        <div class="search-sources-header">🌐 Sources</div>
+        <div class="search-sources-list">${items}</div>
+    </div>`;
+}
+
+export function updateSearchButton() {
+    if (state.settings.searchEnabled) {
+        DOM.btnSearch.classList.add('active');
+        DOM.btnSearch.title = 'Web search ON — click to disable';
+    } else {
+        DOM.btnSearch.classList.remove('active');
+        DOM.btnSearch.title = 'Web search OFF — click to enable';
+    }
+}
+
+export function toggleSearch() {
+    state.settings.searchEnabled = !state.settings.searchEnabled;
+    saveSettings();
+    updateSearchButton();
+    showToast(
+        state.settings.searchEnabled ? '🌐 Web search enabled' : '🌐 Web search disabled',
+        state.settings.searchEnabled ? 'success' : 'info'
+    );
+}

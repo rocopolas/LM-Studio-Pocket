@@ -17,6 +17,8 @@ const state = {
         contextLength: 4096,
         memoryEnabled: true,
         memory: '',
+        searchEnabled: false,
+        searxngUrl: 'http://127.0.0.1:8080',
     },
     models: [],
     pendingImages: [],    // { dataUrl, name }

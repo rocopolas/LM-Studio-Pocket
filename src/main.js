@@ -4,7 +4,7 @@ import state from './state.js';
 import { loadSettings, loadConversations } from './storage.js';
 import { initEventListeners } from './events.js';
 import { renderConversationsList, renderChat } from './conversations.js';
-import { updateModelBadge } from './ui.js';
+import { updateModelBadge, updateSearchButton } from './ui.js';
 import { fetchModels } from './api.js';
 
 function init() {
@@ -20,6 +20,7 @@ function init() {
     }
 
     renderChat();
+    updateSearchButton();
 
     // Auto-load models on start
     if (state.settings.serverUrl) {

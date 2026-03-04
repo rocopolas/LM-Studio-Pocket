@@ -49,6 +49,11 @@ export const DOM = {
     settingMemoryEnabled: $('#setting-memory-enabled'),
     settingMemory: $('#setting-memory'),
     memoryTextareaGroup: $('#memory-textarea-group'),
+    // Search
+    btnSearch: $('#btn-search'),
+    settingSearchEnabled: $('#setting-search-enabled'),
+    settingSearxngUrl: $('#setting-searxng-url'),
+    searxngUrlGroup: $('#searxng-url-group'),
     // Settings Labels (cached for performance)
     labelTemp: $('#temperature-value'),
     labelTopP: $('#top-p-value'),

@@ -19,7 +19,7 @@ export async function fetchModels() {
     return data.models || [];
 }
 
-export async function sendChatStream(messages, onEvent) {
+export async function sendChatStream(messages, onEvent, searchContext = '') {
     const conv = getCurrentConversation();
     const input = [];
 
@@ -48,8 +48,13 @@ export async function sendChatStream(messages, onEvent) {
         context_length: state.settings.contextLength,
     };
 
-    // Build system prompt with memory
+    // Build system prompt: search context + memory + user prompt
     let systemPrompt = '';
+
+    if (searchContext) {
+        systemPrompt += `[Web Search Results]\nThe following are recent web search results relevant to the user's query. Use them to provide accurate, up-to-date information. Cite sources using [number] notation when referencing specific results.\n\n${searchContext}\n[/Web Search Results]\n\n`;
+    }
+
     if (state.settings.memoryEnabled && state.settings.memory.trim()) {
         systemPrompt += `[User Memory]\n${state.settings.memory.trim()}\n[/User Memory]\n\n`;
     }

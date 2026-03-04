@@ -8,9 +8,10 @@ import { renderMarkdown } from './markdown.js';
 import { saveConversations } from './storage.js';
 import { sendChatStream } from './api.js';
 import { getCurrentConversation, createConversation, updateConversationTitle, renderChat } from './conversations.js';
-import { appendMessageToDOM, scrollToBottom, buildTypingHtml, buildStatsHtml, buildReasoningHtml, getActiveModel, updateSendButton, updateQueueBadge } from './ui.js';
+import { appendMessageToDOM, scrollToBottom, buildTypingHtml, buildStatsHtml, buildReasoningHtml, buildSearchSourcesHtml, getActiveModel, updateSendButton, updateQueueBadge } from './ui.js';
 import { renderImagePreviews } from './images.js';
 import { extractAndSaveMemory } from './memory.js';
+import { searchWeb } from './search.js';
 
 export async function sendMessage() {
     const text = DOM.messageInput.value.trim();
@@ -91,6 +92,7 @@ export async function sendMessage() {
         text: '',
         reasoning: '',
         stats: null,
+        sources: null,
         timestamp: Date.now(),
     };
     conv.messages.push(assistantMsg);
@@ -148,6 +150,15 @@ export async function sendMessage() {
                 assistantMsg.text = messageText;
                 break;
             case 'chat.end':
+                // If reasoning consumed all tokens with no actual response, clear typing indicator
+                if (!messageText && domOk()) {
+                    if (reasoningText) {
+                        assistantMsg.text = '*⚠️ El modelo usó todos los tokens en el razonamiento y no generó respuesta. Intenta aumentar Max Tokens en Settings.*';
+                    } else {
+                        assistantMsg.text = '';
+                    }
+                    textEl.innerHTML = renderMarkdown(assistantMsg.text);
+                }
                 if (data.result) {
                     assistantMsg.stats = data.result.stats;
                     if (data.result.response_id) {
@@ -159,6 +170,15 @@ export async function sendMessage() {
                             const statsDiv = document.createElement('div');
                             statsDiv.innerHTML = statsHtml;
                             assistantDiv.querySelector('.message-content').appendChild(statsDiv.firstElementChild);
+                        }
+                    }
+                    // Render search sources
+                    if (domOk() && assistantMsg.sources && assistantMsg.sources.length > 0) {
+                        const sourcesHtml = buildSearchSourcesHtml(assistantMsg.sources);
+                        if (sourcesHtml) {
+                            const sourcesDiv = document.createElement('div');
+                            sourcesDiv.innerHTML = sourcesHtml;
+                            assistantDiv.querySelector('.message-content').appendChild(sourcesDiv.firstElementChild);
                         }
                     }
                     if (state.settings.memoryEnabled && messageText) {
@@ -188,6 +208,23 @@ export async function sendMessage() {
         role: 'user', text: m.text, images: m.images,
     }));
 
+    // Web search (if enabled)
+    let searchContext = '';
+    if (state.settings.searchEnabled) {
+        try {
+            if (domOk()) textEl.innerHTML = buildTypingHtml('🔍 Searching the web...');
+            const searchResult = await searchWeb(text);
+            searchContext = searchResult.contextText;
+            if (searchResult.results.length > 0) {
+                assistantMsg.sources = searchResult.results;
+            }
+        } catch (err) {
+            console.warn('Web search failed:', err.message);
+            showToast(`Search failed: ${err.message}`, 'warning');
+        }
+        if (domOk()) textEl.innerHTML = buildTypingHtml();
+    }
+
     const MAX_RETRIES = CONFIG.MAX_CHAT_RETRIES;
     let lastError = null;
     try {
@@ -201,7 +238,7 @@ export async function sendMessage() {
                     }
                     await new Promise(r => setTimeout(r, delay));
                 }
-                await sendChatStream(buildMsgs(), onStreamEvent);
+                await sendChatStream(buildMsgs(), onStreamEvent, searchContext);
                 lastError = null;
                 break;
             } catch (err) {

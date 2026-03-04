@@ -6,7 +6,7 @@ import { sendMessage, stopGeneration } from './chat.js';
 import { openSettings, closeSettings, saveSettingsFromForm, updateParamLabels, refreshModels, showModelInfo, testConnection } from './settings.js';
 import { openModelsPanel, closeModelsPanel, refreshModelsPanel, downloadModel } from './models.js';
 import { createConversation, getCurrentConversation, switchConversation, renderConversationsList, renderChat } from './conversations.js';
-import { toggleModelPicker, closeModelPicker, selectModelForChat, openSidebar, closeSidebar, autoResize, updateSendButton } from './ui.js';
+import { toggleModelPicker, closeModelPicker, selectModelForChat, openSidebar, closeSidebar, autoResize, updateSendButton, toggleSearch, updateSearchButton } from './ui.js';
 import { addImage } from './images.js';
 import { saveConversations } from './storage.js';
 
@@ -57,6 +57,14 @@ export function initEventListeners() {
     // Memory toggle
     DOM.settingMemoryEnabled.addEventListener('change', () => {
         DOM.memoryTextareaGroup.style.display = DOM.settingMemoryEnabled.checked ? '' : 'none';
+    });
+
+    // Search toggle (input bar)
+    DOM.btnSearch.addEventListener('click', toggleSearch);
+
+    // Search settings toggle
+    DOM.settingSearchEnabled.addEventListener('change', () => {
+        DOM.searxngUrlGroup.style.display = DOM.settingSearchEnabled.checked ? '' : 'none';
     });
 
     // Toggle API key visibility
