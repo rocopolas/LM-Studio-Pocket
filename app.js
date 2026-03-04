@@ -9,7 +9,7 @@
     conversations: [],
     currentConversationId: null,
     settings: {
-      serverUrl: 'http://localhost:1234',
+      serverUrl: 'http://[IP_ADDRESS]',
       apiKey: '',
       model: '',
       systemPrompt: '',
@@ -176,7 +176,7 @@
   window.__copyCode = function (btn) {
     const code = btn.closest('pre').querySelector('code').textContent;
     navigator.clipboard.writeText(code).then(() => {
-      btn.textContent = '✓ Copiado';
+      btn.textContent = '✓ Copied';
       setTimeout(() => { btn.innerHTML = '📋 Copiar'; }, 2000);
     });
   };
@@ -208,7 +208,7 @@
   function createConversation() {
     const conv = {
       id: generateId(),
-      title: 'Nueva Conversación',
+      title: 'New Conversation',
       model: state.settings.model || '',
       messages: [],
       createdAt: Date.now(),
@@ -244,7 +244,7 @@
   }
 
   function updateConversationTitle(conv) {
-    if (conv.messages.length === 1 && conv.title === 'Nueva Conversación') {
+    if (conv.messages.length === 1 && conv.title === 'New Conversation') {
       const firstMsg = conv.messages[0].text || '';
       conv.title = firstMsg.slice(0, 50) + (firstMsg.length > 50 ? '…' : '') || 'Chat';
     }
@@ -402,7 +402,7 @@
 
     if (!conv || conv.messages.length === 0) {
       DOM.welcomeScreen.classList.remove('hidden');
-      DOM.chatTitle.textContent = 'Nueva Conversación';
+      DOM.chatTitle.textContent = 'New Conversation';
     } else {
       DOM.welcomeScreen.classList.add('hidden');
       DOM.chatTitle.textContent = conv.title;
@@ -486,7 +486,7 @@
       const model = state.models.find(m => m.key === activeModel);
       DOM.modelBadgeText.textContent = model?.display_name || activeModel;
     } else {
-      DOM.modelBadgeText.textContent = 'Sin modelo';
+      DOM.modelBadgeText.textContent = 'No model';
     }
   }
 
@@ -511,7 +511,7 @@
     const activeModel = getActiveModel();
     const llms = state.models.filter(m => m.type === 'llm');
     if (llms.length === 0) {
-      DOM.modelPickerList.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:0.82rem;text-align:center">No hay modelos disponibles</div>';
+      DOM.modelPickerList.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:0.82rem;text-align:center">No models available</div>';
       return;
     }
     DOM.modelPickerList.innerHTML = llms.map(m => {
@@ -534,7 +534,7 @@
     saveConversations();
     updateModelBadge();
     closeModelPicker();
-    showToast(`Modelo para este chat: ${modelKey}`, 'success');
+    showToast(`Model for this chat: ${modelKey}`, 'success');
   }
 
   function scrollToBottom() {
@@ -554,11 +554,11 @@
   // ===== Image Handling =====
   function addImage(file) {
     if (!file.type.startsWith('image/')) {
-      showToast('Solo se permiten imágenes', 'warning');
+      showToast('Only images are allowed', 'warning');
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      showToast('La imagen es demasiado grande (máx 20MB)', 'error');
+      showToast('Image is too large (max 20MB)', 'error');
       return;
     }
 
@@ -605,7 +605,7 @@
     if (!text && state.pendingImages.length === 0) return;
     if (state.isGenerating) return;
     if (!state.settings.model && !getActiveModel()) {
-      showToast('Seleccioná un modelo en Configuración o en el selector del chat', 'warning');
+      showToast('Select a model in Settings or the chat selector', 'warning');
       return;
     }
 
@@ -738,14 +738,14 @@
               showToast(errMsg, 'error');
               break;
             case 'prompt_processing.start':
-              textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Procesando prompt...</span>';
+              textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Processing prompt...</span>';
               break;
             case 'model_load.start':
-              textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Cargando modelo...</span>';
+              textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Loading model...</span>';
               break;
             case 'model_load.progress':
               const pct = data.progress != null ? `${Math.round(data.progress * 100)}%` : '';
-              textEl.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Cargando modelo... ${pct}</span>`;
+              textEl.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Loading model... ${pct}</span>`;
               break;
           }
         }
@@ -822,7 +822,7 @@
     state.settings.memory = DOM.settingMemory.value;
     saveSettings();
     updateModelBadge();
-    showToast('Configuración guardada', 'success');
+    showToast('Settings saved', 'success');
     closeSettings();
   }
 
@@ -842,7 +842,7 @@
     if (state.models.length === 0) {
       const opt = document.createElement('option');
       opt.value = '';
-      opt.textContent = '— Cargá modelos primero —';
+      opt.textContent = '— Load models first —';
       select.appendChild(opt);
     } else {
       for (const m of state.models.filter(m => m.type === 'llm')) {
@@ -872,9 +872,9 @@
         }
       }
       showModelInfo();
-      showToast(`${state.models.filter(m => m.type === 'llm').length} modelos encontrados`, 'success');
+      showToast(`${state.models.filter(m => m.type === 'llm').length} models found`, 'success');
     } catch (e) {
-      showToast(`Error cargando modelos: ${e.message}`, 'error');
+      showToast(`Error loading models: ${e.message}`, 'error');
       DOM.modelInfo.innerHTML = '';
     } finally {
       DOM.btnRefreshModels.querySelector('svg').style.animation = '';
@@ -917,7 +917,7 @@
       const data = await resp.json();
       const count = data.models?.filter(m => m.type === 'llm').length || 0;
       DOM.connectionStatus.className = 'connection-status success';
-      DOM.connectionStatus.textContent = `✓ Conectado — ${count} modelos LLM disponibles`;
+      DOM.connectionStatus.textContent = `✓ Connected — ${count} LLM models available`;
       // Also update models
       state.models = data.models || [];
       populateModelSelect();
@@ -965,7 +965,7 @@
     const llms = state.models.filter(m => m.type === 'llm');
     const embeddings = state.models.filter(m => m.type === 'embedding');
     if (llms.length === 0 && embeddings.length === 0) {
-      DOM.modelsListContainer.innerHTML = '<div class="models-list-empty">No se encontraron modelos</div>';
+      DOM.modelsListContainer.innerHTML = '<div class="models-list-empty">No models found</div>';
       return;
     }
     DOM.modelsListContainer.innerHTML = '';
@@ -1004,20 +1004,20 @@
     let actionsHtml = '';
     if (m.type === 'llm') {
       if (isLoaded) {
-        actionsHtml += `<button class="btn-unload" data-instance="${escapeHtml(m.loaded_instances[0].id)}">⏏ Descargar</button>`;
+        actionsHtml += `<button class="btn-unload" data-instance="${escapeHtml(m.loaded_instances[0].id)}">⏏ Unload</button>`;
         if (!isSelected) {
           actionsHtml += `<button class="btn-select-model" data-key="${escapeHtml(m.key)}">✓ Usar</button>`;
         } else {
-          actionsHtml += `<button class="btn-select-model" disabled style="opacity:0.5">✓ En uso</button>`;
+          actionsHtml += `<button class="btn-select-model" disabled style="opacity:0.5">✓ In use</button>`;
         }
       } else {
-        actionsHtml += `<button class="btn-load" data-key="${escapeHtml(m.key)}">▶ Cargar</button>`;
+        actionsHtml += `<button class="btn-load" data-key="${escapeHtml(m.key)}">▶ Load</button>`;
       }
     } else {
       if (isLoaded) {
-        actionsHtml += `<button class="btn-unload" data-instance="${escapeHtml(m.loaded_instances[0].id)}">⏏ Descargar</button>`;
+        actionsHtml += `<button class="btn-unload" data-instance="${escapeHtml(m.loaded_instances[0].id)}">⏏ Unload</button>`;
       } else {
-        actionsHtml += `<button class="btn-load" data-key="${escapeHtml(m.key)}">▶ Cargar</button>`;
+        actionsHtml += `<button class="btn-load" data-key="${escapeHtml(m.key)}">▶ Load</button>`;
       }
     }
 
@@ -1044,15 +1044,15 @@
       if (loadBtn) {
         const key = loadBtn.dataset.key;
         loadBtn.disabled = true;
-        loadBtn.innerHTML = '<div class="spinner"></div> Cargando...';
+        loadBtn.innerHTML = '<div class="spinner"></div> Loading...';
         try {
           await loadModel(key);
-          showToast(`Modelo ${key} cargado`, 'success');
+          showToast(`Model ${key} loaded`, 'success');
           await refreshModelsPanel();
         } catch (err) {
           showToast(`Error: ${err.message}`, 'error');
           loadBtn.disabled = false;
-          loadBtn.innerHTML = '▶ Cargar';
+          loadBtn.innerHTML = '▶ Load';
         }
       }
 
@@ -1062,12 +1062,12 @@
         unloadBtn.innerHTML = '<div class="spinner"></div>';
         try {
           await unloadModel(instanceId);
-          showToast(`Modelo descargado de memoria`, 'success');
+          showToast(`Model unloaded from memory`, 'success');
           await refreshModelsPanel();
         } catch (err) {
           showToast(`Error: ${err.message}`, 'error');
           unloadBtn.disabled = false;
-          unloadBtn.innerHTML = '⏏ Descargar';
+          unloadBtn.innerHTML = '⏏ Unload';
         }
       }
 
@@ -1078,7 +1078,7 @@
         updateModelBadge();
         populateModelSelect();
         renderModelsList();
-        showToast(`Modelo activo: ${key}`, 'success');
+        showToast(`Active model: ${key}`, 'success');
       }
     });
 
@@ -1117,7 +1117,7 @@
   async function downloadModel() {
     const modelId = DOM.downloadModelId.value.trim();
     if (!modelId) {
-      showToast('Ingresá un ID de modelo', 'warning');
+      showToast('Enter a model ID', 'warning');
       return;
     }
 
@@ -1141,9 +1141,9 @@
       const data = await resp.json();
 
       if (data.status === 'already_downloaded') {
-        showToast('El modelo ya está descargado', 'info');
+        showToast('Model is already downloaded', 'info');
       } else {
-        showToast(`Descarga iniciada: ${data.status}`, 'success');
+        showToast(`Download started: ${data.status}`, 'success');
         // Show download job
         const jobHtml = `
           <div class="download-job" id="job-${data.job_id || 'unknown'}">
@@ -1168,14 +1168,14 @@
       DOM.downloadModelId.value = '';
       DOM.downloadQuantization.value = '';
     } catch (e) {
-      showToast(`Error descargando: ${e.message}`, 'error');
+      showToast(`Download error: ${e.message}`, 'error');
     } finally {
       DOM.btnDownloadModel.disabled = false;
       DOM.btnDownloadModel.innerHTML = `
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        Descargar
+        Download
       `;
     }
   }
@@ -1208,10 +1208,10 @@
           setTimeout(() => pollDownloadStatus(jobId, modelId), 3000);
         } else if (job.status === 'completed') {
           fillEl.style.width = '100%';
-          showToast(`Modelo ${modelId} descargado`, 'success');
+          showToast(`Model ${modelId} downloaded`, 'success');
           refreshModelsPanel();
         } else if (job.status === 'failed') {
-          showToast(`Descarga fallida: ${modelId}`, 'error');
+          showToast(`Download failed: ${modelId}`, 'error');
         }
       } else {
         // Job not found, might be completed
@@ -1313,7 +1313,7 @@
       const conv = getCurrentConversation();
       if (conv) {
         conv.messages = [];
-        conv.title = 'Nueva Conversación';
+        conv.title = 'New Conversation';
         conv.lastResponseId = null;
         saveConversations();
         renderConversationsList();
