@@ -10,7 +10,7 @@ Featuring a premium "mobile-first" design, dark mode, and *glassmorphism* aesthe
 > **Prerequisites:** [Node.js](https://nodejs.org/) and [Docker](https://docs.docker.com/engine/install/) must be installed.
 
 ```bash
-git clone https://github.com/<your-user>/lm-studio-pocket.git && cd lm-studio-pocket && chmod +x install.sh && ./install.sh
+git clone https://github.com/rocopolas/lm-studio-pocket.git && cd lm-studio-pocket && chmod +x install.sh && ./install.sh
 ```
 
 This single command will:
