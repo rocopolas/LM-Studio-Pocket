@@ -25,6 +25,7 @@
     },
     models: [],
     pendingImages: [], // { dataUrl, name }
+    messageQueue: [], // { text, images: [dataUrl] }
     isGenerating: false,
     abortController: null,
   };
@@ -305,6 +306,9 @@
     let systemPrompt = '';
     if (state.settings.memoryEnabled && state.settings.memory.trim()) {
       systemPrompt += `[User Memory]\n${state.settings.memory.trim()}\n[/User Memory]\n\n`;
+    }
+    if (state.settings.memoryEnabled) {
+      systemPrompt += `[Memory Instructions]\nYou have the ability to remember important information about the user across conversations. When the user shares personal details, preferences, or important context, you can acknowledge it naturally (e.g., "I'll remember that"). The memory system works automatically.\n[/Memory Instructions]\n\n`;
     }
     if (state.settings.systemPrompt) {
       systemPrompt += state.settings.systemPrompt;
@@ -628,13 +632,131 @@
     removeImage(i);
   };
 
+  // ===== Memory Extraction =====
+  async function extractAndSaveMemory(userText, assistantText) {
+    if (!state.settings.memoryEnabled) return;
+    if (!userText || !assistantText) return;
+
+    // Strip <think>...</think> reasoning tags from assistant response
+    assistantText = assistantText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    if (!assistantText) return;
+
+    const currentMemory = state.settings.memory.trim();
+    const extractionPrompt = `You are a memory extraction assistant. Your ONLY job is to analyze a conversation exchange and extract important facts about the user that should be remembered for future conversations.
+
+Current saved memory:
+${currentMemory ? `"""\n${currentMemory}\n"""` : '(empty)'}
+
+Latest exchange:
+User: ${userText}
+Assistant: ${assistantText}
+
+Rules:
+- Extract ONLY factual, personal, or preference-related information about the user (name, profession, interests, tech stack, language preferences, important context, etc.)
+- Do NOT extract trivial or temporary information (questions about general knowledge, greetings, etc.)
+- Do NOT duplicate information already in the saved memory
+- If there is nothing new worth remembering, respond with EXACTLY: [NO_UPDATE]
+- If there ARE new facts, respond with ONLY the new bullet points to add (starting each with "- "), nothing else
+- Keep each bullet point concise (one line)
+- Respond in the same language the user used`;
+
+    try {
+      const conv = getCurrentConversation();
+      const model = conv?.model || state.settings.model;
+      if (!model) return;
+
+      const resp = await fetch(`${state.settings.serverUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: 'system', content: extractionPrompt },
+            { role: 'user', content: 'Extract important facts from the exchange above.' },
+          ],
+          temperature: 0.1,
+          max_tokens: 256,
+          stream: false,
+        }),
+      });
+
+      if (!resp.ok) return;
+
+      const data = await resp.json();
+      let result = (data.choices?.[0]?.message?.content || '').trim();
+
+      // Strip <think>...</think> reasoning from extraction response
+      result = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+      if (!result || result.includes('[NO_UPDATE]')) return;
+
+      // Append new facts to memory
+      const newMemory = currentMemory
+        ? `${currentMemory}\n${result}`
+        : result;
+
+      state.settings.memory = newMemory;
+      saveSettings();
+
+      // Update the textarea if settings panel is open
+      if (DOM.settingMemory) {
+        DOM.settingMemory.value = newMemory;
+      }
+
+      showToast('🧠 Memory updated', 'success');
+    } catch (e) {
+      // Silently fail — memory extraction is non-critical
+      console.warn('Memory extraction failed:', e.message);
+    }
+  }
+
   // ===== Send Message =====
   async function sendMessage() {
     const text = DOM.messageInput.value.trim();
     if (!text && state.pendingImages.length === 0) return;
-    if (state.isGenerating) return;
     if (!state.settings.model && !getActiveModel()) {
       showToast('Select a model in Settings or the chat selector', 'warning');
+      return;
+    }
+
+    // If generating, queue the message and show it visually
+    if (state.isGenerating) {
+      const queuedImages = state.pendingImages.map(i => i.dataUrl);
+      state.messageQueue.push({
+        text: text,
+        images: queuedImages,
+      });
+
+      // Clear input immediately for responsive UX
+      DOM.messageInput.value = '';
+      DOM.messageInput.style.height = 'auto';
+      state.pendingImages = [];
+      renderImagePreviews();
+      updateSendButton();
+
+      // Show queued message in chat
+      let conv = getCurrentConversation();
+      if (!conv) conv = createConversation();
+      const queuedMsg = {
+        id: generateId(),
+        role: 'user',
+        text: text,
+        images: queuedImages,
+        timestamp: Date.now(),
+        queued: true,
+      };
+      conv.messages.push(queuedMsg);
+      const queuedDiv = appendMessageToDOM(queuedMsg);
+      queuedDiv.classList.add('queued');
+      // Add queued badge
+      const badge = document.createElement('div');
+      badge.className = 'queued-badge';
+      badge.innerHTML = '⏳ Queued';
+      queuedDiv.querySelector('.message-content').appendChild(badge);
+      scrollToBottom();
+      saveConversations();
+      updateConversationTitle(conv);
+      updateQueueBadge();
       return;
     }
 
@@ -760,6 +882,10 @@
                   `;
                   assistantDiv.querySelector('.message-content').appendChild(statsDiv);
                 }
+                // Auto-extract memory (fire-and-forget)
+                if (state.settings.memoryEnabled && messageText) {
+                  extractAndSaveMemory(text, messageText);
+                }
               }
               break;
             case 'error':
@@ -796,6 +922,47 @@
       saveConversations();
       updateSendButton();
       scrollToBottom();
+      updateQueueBadge();
+
+      // Process next queued message
+      if (state.messageQueue.length > 0) {
+        const next = state.messageQueue.shift();
+
+        // Remove the queued message DOM element entirely (sendMessage will re-create it)
+        const queuedEl = DOM.messagesContainer.querySelector('.message.queued');
+        if (queuedEl) {
+          queuedEl.remove();
+        }
+
+        // Remove the queued user message from conv (sendMessage will re-add it)
+        const conv = getCurrentConversation();
+        if (conv) {
+          const idx = conv.messages.findIndex(m => m.queued && m.text === next.text);
+          if (idx !== -1) conv.messages.splice(idx, 1);
+        }
+
+        // Feed back into sendMessage via input
+        DOM.messageInput.value = next.text;
+        state.pendingImages = next.images.map(url => ({ dataUrl: url, name: 'queued' }));
+        renderImagePreviews();
+
+        updateQueueBadge();
+        sendMessage();
+      }
+    }
+  }
+
+  function updateQueueBadge() {
+    let badge = DOM.btnStop.querySelector('.queue-count');
+    if (state.messageQueue.length > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'queue-count';
+        DOM.btnStop.appendChild(badge);
+      }
+      badge.textContent = state.messageQueue.length;
+    } else {
+      if (badge) badge.remove();
     }
   }
 
