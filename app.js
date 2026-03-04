@@ -552,6 +552,31 @@
   };
 
   // ===== Image Handling =====
+  function compressImage(dataUrl, maxDim, callback) {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => callback(dataUrl); // Fallback si falla
+    img.src = dataUrl;
+  }
+
   function addImage(file) {
     if (!file.type.startsWith('image/')) {
       showToast('Only images are allowed', 'warning');
@@ -564,15 +589,19 @@
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      state.pendingImages.push({ dataUrl: e.target.result, name: file.name });
-      renderImagePreviews();
+      compressImage(e.target.result, 1200, (compressedDataUrl) => {
+        state.pendingImages.push({ dataUrl: compressedDataUrl, name: file.name });
+        renderImagePreviews();
+      });
     };
     reader.readAsDataURL(file);
   }
 
   function addImageFromDataUrl(dataUrl) {
-    state.pendingImages.push({ dataUrl, name: 'clipboard' });
-    renderImagePreviews();
+    compressImage(dataUrl, 1200, (compressedDataUrl) => {
+      state.pendingImages.push({ dataUrl: compressedDataUrl, name: 'clipboard' });
+      renderImagePreviews();
+    });
   }
 
   function removeImage(index) {
