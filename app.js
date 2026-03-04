@@ -9,7 +9,7 @@
     conversations: [],
     currentConversationId: null,
     settings: {
-      serverUrl: 'http://[IP_ADDRESS]',
+      serverUrl: (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SERVER_URL) || 'http://localhost:1234',
       apiKey: '',
       model: '',
       systemPrompt: '',

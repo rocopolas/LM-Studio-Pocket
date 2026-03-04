@@ -15,19 +15,23 @@ Featuring a premium "mobile-first" design, dark mode, and *glassmorphism* aesthe
 5. Click on **Start Server** (defaults to port `1234`).
 
 ### 2. Run LM Studio Pocket
-You don't need to install Node or compile anything complicated, just download and serve these static files.
+The app uses Vite for blazing-fast development and to easily handle environment variables.
 
-If you have `npx` (Node.js) installed, you can spin it up in 1 second by running this in the project folder:
-
+1. Open a terminal in the project folder and **install dependencies**:
 ```bash
-npx serve .
+npm install
 ```
 
-If you don't have Node, you can use Python (which you almost certainly have installed on Linux/Mac):
-
-```bash
-python3 -m http.server 3000
+2. Open the `.env` file and **set your LM Studio server IP address** if you want it to be automatically configured when you open the app on your phone:
+```env
+VITE_SERVER_URL=http://[IP_ADDRESS]
 ```
+
+3. **Start the server**:
+```bash
+npm run dev -- --host
+```
+*(The `--host` flag exposes the app to your local network).*
 
 ### 3. Access from your phone
 1. Make sure your phone is connected to the **same WiFi** as your computer.
