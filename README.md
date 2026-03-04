@@ -1,6 +1,6 @@
 # LM Studio Pocket
 
-LM Studio Pocket is a Progressive Web App (PWA) designed to connect you remotely (from your phone or any device) to your local **LM Studio** server.
+LM Studio Pocket is a Web App designed to connect you remotely (from your phone or any device) to your local **LM Studio** server.
 
 Featuring a premium "mobile-first" design, dark mode, and *glassmorphism* aesthetics, it allows you to comfortably chat with your LLMs, manage your models, and process images.
 
