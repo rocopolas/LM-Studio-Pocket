@@ -4,6 +4,22 @@
 (() => {
   'use strict';
 
+  // ===== Constants =====
+  const CONFIG = {
+    TOAST_DURATION: 3500,
+    IMAGE_MAX_DIM: 1200,
+    IMAGE_MAX_SIZE: 20 * 1024 * 1024,
+    IMAGE_QUALITY: 0.85,
+    MAX_CHAT_RETRIES: 3,
+    MAX_MEMORY_RETRIES: 3,
+    MEMORY_DELAY_MS: 500,
+    SCROLL_THROTTLE_MS: 50,
+    STORAGE_KEYS: {
+      SETTINGS: 'lm-studio-pocket-settings',
+      CONVERSATIONS: 'lm-studio-pocket-conversations',
+    },
+  };
+
   // ===== State =====
   const state = {
     conversations: [],
@@ -79,6 +95,14 @@
     settingMemoryEnabled: $('#setting-memory-enabled'),
     settingMemory: $('#setting-memory'),
     memoryTextareaGroup: $('#memory-textarea-group'),
+    // Settings Labels
+    labelTemp: $('#temperature-value'),
+    labelTopP: $('#top-p-value'),
+    labelTopK: $('#top-k-value'),
+    labelMinP: $('#min-p-value'),
+    labelRepeat: $('#repeat-penalty-value'),
+    labelMaxTokens: $('#max-tokens-value'),
+    labelContextLength: $('#context-length-value'),
     dropZone: $('#drop-zone'),
     toastContainer: $('#toast-container'),
     // Model picker
@@ -113,18 +137,19 @@
     return d.toLocaleDateString('es', { day: 'numeric', month: 'short' });
   }
 
+  const TOAST_ICONS = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+
   function showToast(message, type = 'info') {
-    const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<span>${icons[type] || 'ℹ'}</span><span>${message}</span>`;
+    toast.innerHTML = `<span>${TOAST_ICONS[type] || 'ℹ'}</span><span>${message}</span>`;
     DOM.toastContainer.appendChild(toast);
     setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateX(40px)';
       toast.style.transition = 'all 0.3s ease';
       setTimeout(() => toast.remove(), 300);
-    }, 3500);
+    }, CONFIG.TOAST_DURATION);
   }
 
   function escapeHtml(text) {
@@ -134,45 +159,36 @@
   }
 
   // ===== Markdown Rendering =====
-  function renderMarkdown(text) {
-    if (typeof marked === 'undefined') return escapeHtml(text).replace(/\n/g, '<br>');
+  let _markedRenderer = null;
 
-    marked.setOptions({
-      highlight: function (code, lang) {
-        if (typeof hljs !== 'undefined' && lang && hljs.getLanguage(lang)) {
-          try { return hljs.highlight(code, { language: lang }).value; } catch (e) { }
-        }
-        if (typeof hljs !== 'undefined') {
-          try { return hljs.highlightAuto(code).value; } catch (e) { }
-        }
-        return escapeHtml(code);
-      },
-      breaks: true,
-      gfm: true,
-    });
-
-    const renderer = new marked.Renderer();
-    const origCode = renderer.code;
-    renderer.code = function (obj) {
+  function _initMarked() {
+    if (_markedRenderer || typeof marked === 'undefined') return;
+    marked.setOptions({ breaks: true, gfm: true });
+    _markedRenderer = new marked.Renderer();
+    _markedRenderer.code = function (obj) {
       const code = typeof obj === 'object' ? obj.text : obj;
       const lang = typeof obj === 'object' ? obj.lang : arguments[1];
-      let highlighted = code;
-      if (typeof hljs !== 'undefined') {
-        try {
-          highlighted = lang && hljs.getLanguage(lang)
-            ? hljs.highlight(code, { language: lang }).value
-            : hljs.highlightAuto(code).value;
-        } catch (e) {
-          highlighted = escapeHtml(code);
-        }
-      } else {
-        highlighted = escapeHtml(code);
-      }
+      const highlighted = _highlightCode(code, lang);
       const langLabel = lang || 'code';
       return `<pre><div class="code-header"><span>${escapeHtml(langLabel)}</span><button class="btn-copy-code" onclick="window.__copyCode(this)">📋 Copiar</button></div><code class="hljs language-${escapeHtml(langLabel)}">${highlighted}</code></pre>`;
     };
+  }
 
-    return marked.parse(text, { renderer });
+  function _highlightCode(code, lang) {
+    if (typeof hljs === 'undefined') return escapeHtml(code);
+    try {
+      return lang && hljs.getLanguage(lang)
+        ? hljs.highlight(code, { language: lang }).value
+        : hljs.highlightAuto(code).value;
+    } catch (_) {
+      return escapeHtml(code);
+    }
+  }
+
+  function renderMarkdown(text) {
+    if (typeof marked === 'undefined') return escapeHtml(text).replace(/\n/g, '<br>');
+    _initMarked();
+    return marked.parse(text, { renderer: _markedRenderer });
   }
 
   window.__copyCode = function (btn) {
@@ -186,24 +202,24 @@
   // ===== Storage =====
   function loadSettings() {
     try {
-      const saved = localStorage.getItem('lm-studio-pocket-settings');
+      const saved = localStorage.getItem(CONFIG.STORAGE_KEYS.SETTINGS);
       if (saved) Object.assign(state.settings, JSON.parse(saved));
-    } catch (e) { }
+    } catch (_) { }
   }
 
   function saveSettings() {
-    localStorage.setItem('lm-studio-pocket-settings', JSON.stringify(state.settings));
+    localStorage.setItem(CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings));
   }
 
   function loadConversations() {
     try {
-      const saved = localStorage.getItem('lm-studio-pocket-conversations');
+      const saved = localStorage.getItem(CONFIG.STORAGE_KEYS.CONVERSATIONS);
       if (saved) state.conversations = JSON.parse(saved);
-    } catch (e) { }
+    } catch (_) { }
   }
 
   function saveConversations() {
-    localStorage.setItem('lm-studio-pocket-conversations', JSON.stringify(state.conversations));
+    localStorage.setItem(CONFIG.STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.conversations));
   }
 
   // ===== Conversation Management =====
@@ -239,20 +255,24 @@
     state.conversations = state.conversations.filter(c => c.id !== id);
     if (state.currentConversationId === id) {
       state.currentConversationId = state.conversations[0]?.id || null;
+      switchConversation(state.currentConversationId); // this will renderChat + renderConversationsList
+    } else {
+      saveConversations();
+      renderConversationsList();
     }
-    saveConversations();
-    renderConversationsList();
-    renderChat();
   }
 
   function updateConversationTitle(conv) {
     if (conv.messages.length === 1 && conv.title === 'New Conversation') {
       const firstMsg = conv.messages[0].text || '';
       conv.title = firstMsg.slice(0, 50) + (firstMsg.length > 50 ? '…' : '') || 'Chat';
+      conv.updatedAt = Date.now();
+      saveConversations();
+      renderConversationsList();
+    } else {
+      conv.updatedAt = Date.now();
+      // Notice: saveConversations() will be called anyway at the end of sendMessage
     }
-    conv.updatedAt = Date.now();
-    saveConversations();
-    renderConversationsList();
   }
 
   // ===== API Client =====
@@ -436,15 +456,7 @@
 
     let reasoningHtml = '';
     if (msg.reasoning) {
-      reasoningHtml = `
-        <div class="reasoning-block">
-          <div class="reasoning-header" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-            Razonamiento
-          </div>
-          <div class="reasoning-content">${renderMarkdown(msg.reasoning)}</div>
-        </div>
-      `;
+      reasoningHtml = buildReasoningHtml(msg.reasoning);
     }
 
     let contentHtml = '';
@@ -456,14 +468,7 @@
 
     let statsHtml = '';
     if (msg.stats) {
-      const s = msg.stats;
-      statsHtml = `
-        <div class="message-stats">
-          <span>⚡ ${s.tokens_per_second?.toFixed(1) || '?'} t/s</span>
-          <span>📝 ${s.total_output_tokens || '?'} tokens</span>
-          <span>⏱️ ${s.time_to_first_token_seconds?.toFixed(2) || '?'}s TTFT</span>
-        </div>
-      `;
+      statsHtml = buildStatsHtml(msg.stats);
     }
 
     div.innerHTML = `
@@ -542,9 +547,13 @@
     showToast(`Model for this chat: ${modelKey}`, 'success');
   }
 
+  // Throttled scroll — avoids excessive layout during streaming
+  let _scrollRafId = null;
   function scrollToBottom() {
-    requestAnimationFrame(() => {
+    if (_scrollRafId) return;
+    _scrollRafId = requestAnimationFrame(() => {
       DOM.chatArea.scrollTop = DOM.chatArea.scrollHeight;
+      _scrollRafId = null;
     });
   }
 
@@ -555,6 +564,31 @@
     lb.addEventListener('click', () => lb.remove());
     document.body.appendChild(lb);
   };
+
+  // ===== HTML Helpers =====
+  function buildStatsHtml(stats) {
+    if (!stats) return '';
+    return `<div class="message-stats">
+      <span>⚡ ${stats.tokens_per_second?.toFixed(1) || '?'} t/s</span>
+      <span>📝 ${stats.total_output_tokens || '?'} tokens</span>
+      <span>⏱️ ${stats.time_to_first_token_seconds?.toFixed(2) || '?'}s TTFT</span>
+    </div>`;
+  }
+
+  function buildTypingHtml(label) {
+    return `<div class="typing-indicator"><span></span><span></span><span></span></div>${label ? `<span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">${label}</span>` : ''}`;
+  }
+
+  function buildReasoningHtml(reasoningText, isCollapsed = false) {
+    const colClass = isCollapsed ? ' collapsed' : '';
+    return `<div class="reasoning-block">
+      <div class="reasoning-header${colClass}" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        Razonamiento
+      </div>
+      <div class="reasoning-content${colClass}">${renderMarkdown(reasoningText)}</div>
+    </div>`;
+  }
 
   // ===== Image Handling =====
   function compressImage(dataUrl, maxDim, callback) {
@@ -576,9 +610,9 @@
       canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      callback(canvas.toDataURL('image/jpeg', 0.85));
+      callback(canvas.toDataURL('image/jpeg', CONFIG.IMAGE_QUALITY));
     };
-    img.onerror = () => callback(dataUrl); // Fallback si falla
+    img.onerror = () => callback(dataUrl);
     img.src = dataUrl;
   }
 
@@ -587,14 +621,14 @@
       showToast('Only images are allowed', 'warning');
       return;
     }
-    if (file.size > 20 * 1024 * 1024) {
+    if (file.size > CONFIG.IMAGE_MAX_SIZE) {
       showToast('Image is too large (max 20MB)', 'error');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      compressImage(e.target.result, 1200, (compressedDataUrl) => {
+      compressImage(e.target.result, CONFIG.IMAGE_MAX_DIM, (compressedDataUrl) => {
         state.pendingImages.push({ dataUrl: compressedDataUrl, name: file.name });
         renderImagePreviews();
       });
@@ -603,7 +637,7 @@
   }
 
   function addImageFromDataUrl(dataUrl) {
-    compressImage(dataUrl, 1200, (compressedDataUrl) => {
+    compressImage(dataUrl, CONFIG.IMAGE_MAX_DIM, (compressedDataUrl) => {
       state.pendingImages.push({ dataUrl: compressedDataUrl, name: 'clipboard' });
       renderImagePreviews();
     });
@@ -635,7 +669,6 @@
 
   // ===== Memory Extraction =====
   async function extractAndSaveMemory(userText, assistantText, attempt = 1) {
-    const MAX_RETRIES = 3;
     if (!state.settings.memoryEnabled) return;
     if (!userText || !assistantText) return;
 
@@ -717,8 +750,8 @@ Rules:
       showToast('🧠 Memory updated', 'success');
     } catch (e) {
       // Retry on network errors
-      if (attempt < MAX_RETRIES) {
-        const delay = attempt * 2000;
+      if (attempt < CONFIG.MAX_MEMORY_RETRIES) {
+        const delay = attempt * CONFIG.MEMORY_DELAY_MS;
         console.warn(`Memory extraction attempt ${attempt} failed, retrying in ${delay}ms...`);
         setTimeout(() => extractAndSaveMemory(userText, assistantText, attempt + 1), delay);
       } else {
@@ -822,7 +855,7 @@ Rules:
     const textEl = assistantDiv.querySelector('.message-text');
 
     // Show typing indicator
-    textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+    textEl.innerHTML = buildTypingHtml();
     scrollToBottom();
 
     // Switch buttons
@@ -853,14 +886,8 @@ Rules:
               let reasoningBlock = contentEl.querySelector('.reasoning-block');
               if (!reasoningBlock) {
                 reasoningBlock = document.createElement('div');
-                reasoningBlock.className = 'reasoning-block';
-                reasoningBlock.innerHTML = `
-                  <div class="reasoning-header collapsed" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed')">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-                    Razonamiento
-                  </div>
-                  <div class="reasoning-content collapsed">${renderMarkdown(reasoningText)}</div>
-                `;
+                reasoningBlock.innerHTML = buildReasoningHtml(reasoningText, true);
+                reasoningBlock = reasoningBlock.firstElementChild; // Extract the actual block
                 contentEl.insertBefore(reasoningBlock, textEl);
               }
             }
@@ -886,18 +913,15 @@ Rules:
               conv.lastResponseId = data.result.response_id;
             }
             if (domOk() && assistantMsg.stats) {
-              const s = assistantMsg.stats;
-              const statsDiv = document.createElement('div');
-              statsDiv.className = 'message-stats';
-              statsDiv.innerHTML = `
-                <span>⚡ ${s.tokens_per_second?.toFixed(1) || '?'} t/s</span>
-                <span>📝 ${s.total_output_tokens || '?'} tokens</span>
-                <span>⏱️ ${s.time_to_first_token_seconds?.toFixed(2) || '?'}s TTFT</span>
-              `;
-              assistantDiv.querySelector('.message-content').appendChild(statsDiv);
+              const statsHtml = buildStatsHtml(assistantMsg.stats);
+              if (statsHtml) {
+                const statsDiv = document.createElement('div');
+                statsDiv.innerHTML = statsHtml;
+                assistantDiv.querySelector('.message-content').appendChild(statsDiv.firstElementChild);
+              }
             }
             if (state.settings.memoryEnabled && messageText) {
-              setTimeout(() => extractAndSaveMemory(text, messageText), 2000);
+              setTimeout(() => extractAndSaveMemory(text, messageText), CONFIG.MEMORY_DELAY_MS);
             }
           }
           break;
@@ -905,15 +929,15 @@ Rules:
           showToast(data.error?.message || 'Error desconocido', 'error');
           break;
         case 'prompt_processing.start':
-          if (domOk()) textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Processing prompt...</span>';
+          if (domOk()) textEl.innerHTML = buildTypingHtml('Processing prompt...');
           break;
         case 'model_load.start':
-          if (domOk()) textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Loading model...</span>';
+          if (domOk()) textEl.innerHTML = buildTypingHtml('Loading model...');
           break;
         case 'model_load.progress':
           if (domOk()) {
             const pct = data.progress != null ? `${Math.round(data.progress * 100)}%` : '';
-            textEl.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Loading model... ${pct}</span>`;
+            textEl.innerHTML = buildTypingHtml(`Loading model... ${pct}`);
           }
           break;
       }
@@ -924,7 +948,7 @@ Rules:
     }));
 
     // Stream with auto-retry on network errors
-    const MAX_RETRIES = 3;
+    const MAX_RETRIES = CONFIG.MAX_CHAT_RETRIES;
     let lastError = null;
     try {
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -1073,13 +1097,13 @@ Rules:
   }
 
   function updateParamLabels() {
-    $('#temperature-value').textContent = parseFloat(DOM.settingTemperature.value).toFixed(2);
-    $('#top-p-value').textContent = parseFloat(DOM.settingTopP.value).toFixed(2);
-    $('#top-k-value').textContent = DOM.settingTopK.value;
-    $('#min-p-value').textContent = parseFloat(DOM.settingMinP.value).toFixed(2);
-    $('#repeat-penalty-value').textContent = parseFloat(DOM.settingRepeatPenalty.value).toFixed(2);
-    $('#max-tokens-value').textContent = DOM.settingMaxTokens.value;
-    $('#context-length-value').textContent = DOM.settingContextLength.value;
+    DOM.labelTemp.textContent = parseFloat(DOM.settingTemperature.value).toFixed(2);
+    DOM.labelTopP.textContent = parseFloat(DOM.settingTopP.value).toFixed(2);
+    DOM.labelTopK.textContent = DOM.settingTopK.value;
+    DOM.labelMinP.textContent = parseFloat(DOM.settingMinP.value).toFixed(2);
+    DOM.labelRepeat.textContent = parseFloat(DOM.settingRepeatPenalty.value).toFixed(2);
+    DOM.labelMaxTokens.textContent = DOM.settingMaxTokens.value;
+    DOM.labelContextLength.textContent = DOM.settingContextLength.value;
   }
 
   function populateModelSelect() {
