@@ -554,14 +554,14 @@ body {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 20px;
 }
 
 /* ===== Messages ===== */
 .message {
   display: flex;
   gap: 12px;
-  max-width: 85%;
+  max-width: 95%;
   animation: fadeInUp 0.3s ease;
 }
 
@@ -1811,7 +1811,7 @@ details:not([open]) .reasoning-header svg {
   }
 
   .message {
-    max-width: 92%;
+    max-width: 100%;
   }
 
   .welcome-screen h2 {

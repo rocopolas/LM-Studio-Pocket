@@ -64,13 +64,15 @@ Rules:
 
         if (!rawResult || rawResult.includes('[NO_UPDATE]')) return;
 
-        const bulletPoints = rawResult
+        let bulletList = rawResult
             .split('\n')
             .map(line => line.trim())
-            .filter(line => line.startsWith('- '))
-            .join('\n');
+            .filter(line => line.startsWith('- '));
 
-        if (!bulletPoints) return;
+        if (bulletList.length === 0) return;
+
+        // Use only the last bullet point as requested
+        const bulletPoints = bulletList.pop();
 
         const newMemory = currentMemory
             ? `${currentMemory}\n${bulletPoints}`

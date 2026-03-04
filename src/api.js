@@ -4,7 +4,10 @@ import state from './state.js';
 import { getCurrentConversation } from './conversations.js';
 
 export function getHeaders() {
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-Target-Url': state.settings.serverUrl
+    };
     if (state.settings.apiKey) {
         headers['Authorization'] = `Bearer ${state.settings.apiKey}`;
     }
@@ -12,7 +15,8 @@ export function getHeaders() {
 }
 
 export async function fetchModels() {
-    const url = `${state.settings.serverUrl}/api/v1/models`;
+    if (!state.settings.serverUrl) return [];
+    const url = `/api/proxy/api/v1/models`;
     const resp = await fetch(url, { headers: getHeaders() });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
@@ -83,7 +87,7 @@ export async function sendChatStream(messages, onEvent, searchContext = '') {
 
     state.abortController = new AbortController();
 
-    const resp = await fetch(`${state.settings.serverUrl}/api/v1/chat`, {
+    const resp = await fetch(`/api/proxy/api/v1/chat`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify(body),

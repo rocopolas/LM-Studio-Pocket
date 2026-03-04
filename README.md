@@ -83,7 +83,8 @@ npm run dev
 
 ### 6. Access from Your Phone (Local)
 1. Make sure your phone is connected to the **same WiFi** as your computer.
-2. Open the browser on your phone and enter your computer's IP address followed by the Vite port (e.g., `http://192.168.1.100:5173`).
+2. Open the browser on your phone and enter your computer's IP address followed by the Vite port (e.g., `https://192.168.1.100:5173`).
+   - *Note: Since this is a local connection, your browser will warn you that the connection is "Not Private" or "Not Secure". Click **Advanced \> Proceed/Accept Risk** to access the app.*
 3. (Optional) Tap the 3 dots in your mobile browser and select **"Add to Home Screen"** to use it as a native app.
 4. In the app, open the sidebar > **Settings**, and make sure the **Server URL** points to your PC's IP in LM Studio (e.g., `http://192.168.1.100:1234`).
 5. Enable **Web Search** in Settings to use SearXNG.
@@ -112,6 +113,7 @@ VITE_SERVER_URL=http://[YOUR_TAILSCALE_IP]:1234
 
 ### 3. Connect from Your Phone
 1. Make sure the Tailscale VPN is **active** on your phone.
-2. Open your phone's browser and go directly to your computer's Tailscale IP on port 5173: `http://[YOUR_TAILSCALE_IP]:5173`
+2. Open your phone's browser and go directly to your computer's Tailscale IP on port 5173 using **HTTPS**: `https://[YOUR_TAILSCALE_IP]:5173`
+   - *Note: You will need to accept the browser's "Not Private" self-signed certificate warning (Advanced \> Proceed) the first time you connect.*
 3. Everything will work seamlessly, securely encrypted through your own private network!
 
