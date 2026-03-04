@@ -20,6 +20,8 @@
       repeatPenalty: 1.1,
       maxTokens: 2048,
       contextLength: 4096,
+      memoryEnabled: true,
+      memory: '',
     },
     models: [],
     pendingImages: [], // { dataUrl, name }
@@ -71,6 +73,10 @@
     settingMaxTokens: $('#setting-max-tokens'),
     settingContextLength: $('#setting-context-length'),
     modelInfo: $('#model-info'),
+    // Memory
+    settingMemoryEnabled: $('#setting-memory-enabled'),
+    settingMemory: $('#setting-memory'),
+    memoryTextareaGroup: $('#memory-textarea-group'),
     dropZone: $('#drop-zone'),
     toastContainer: $('#toast-container'),
     // Model picker
@@ -295,8 +301,16 @@
       context_length: state.settings.contextLength,
     };
 
+    // Build system prompt with memory
+    let systemPrompt = '';
+    if (state.settings.memoryEnabled && state.settings.memory.trim()) {
+      systemPrompt += `[User Memory]\n${state.settings.memory.trim()}\n[/User Memory]\n\n`;
+    }
     if (state.settings.systemPrompt) {
-      body.system_prompt = state.settings.systemPrompt;
+      systemPrompt += state.settings.systemPrompt;
+    }
+    if (systemPrompt) {
+      body.system_prompt = systemPrompt;
     }
 
     // Use stateful chats: pass previous response ID
@@ -785,6 +799,9 @@
     DOM.settingRepeatPenalty.value = state.settings.repeatPenalty;
     DOM.settingMaxTokens.value = state.settings.maxTokens;
     DOM.settingContextLength.value = state.settings.contextLength;
+    DOM.settingMemoryEnabled.checked = state.settings.memoryEnabled;
+    DOM.settingMemory.value = state.settings.memory;
+    DOM.memoryTextareaGroup.style.display = state.settings.memoryEnabled ? '' : 'none';
     updateParamLabels();
     populateModelSelect();
   }
@@ -801,6 +818,8 @@
     state.settings.repeatPenalty = parseFloat(DOM.settingRepeatPenalty.value);
     state.settings.maxTokens = parseInt(DOM.settingMaxTokens.value);
     state.settings.contextLength = parseInt(DOM.settingContextLength.value);
+    state.settings.memoryEnabled = DOM.settingMemoryEnabled.checked;
+    state.settings.memory = DOM.settingMemory.value;
     saveSettings();
     updateModelBadge();
     showToast('Configuración guardada', 'success');
@@ -1267,6 +1286,11 @@
       if (!e.target.closest('.model-badge-wrapper')) {
         closeModelPicker();
       }
+    });
+
+    // Memory toggle
+    DOM.settingMemoryEnabled.addEventListener('change', () => {
+      DOM.memoryTextareaGroup.style.display = DOM.settingMemoryEnabled.checked ? '' : 'none';
     });
 
     // Toggle API key visibility

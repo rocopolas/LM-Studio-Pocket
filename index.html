@@ -277,6 +277,33 @@
         </div>
       </section>
 
+      <!-- Memory -->
+      <section class="settings-section">
+        <h3 class="settings-section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a10 10 0 1 0 10 10H12V2z" />
+            <path d="M20.24 7.76a6 6 0 0 0-8.49-8.49" />
+          </svg>
+          Memoria
+        </h3>
+        <p class="settings-hint">Información persistente que se inyecta en todos los chats (ej: tu nombre, preferencias,
+          contexto).</p>
+        <div class="form-group">
+          <label class="toggle-label">
+            <span>Activar memoria</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-memory-enabled" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </label>
+        </div>
+        <div class="form-group" id="memory-textarea-group">
+          <textarea id="setting-memory" class="form-textarea" rows="4"
+            placeholder="Ej: Mi nombre es Juan. Prefiero respuestas concisas. Trabajo con Python y React."></textarea>
+        </div>
+      </section>
+
       <!-- Parameters -->
       <section class="settings-section">
         <h3 class="settings-section-title">
