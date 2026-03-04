@@ -21,14 +21,14 @@ export function buildTypingHtml(label) {
 }
 
 export function buildReasoningHtml(reasoningText, isCollapsed = false) {
-    const colClass = isCollapsed ? ' collapsed' : '';
-    return `<div class="reasoning-block">
-    <div class="reasoning-header${colClass}" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed')">
+    const openAttr = isCollapsed ? '' : 'open';
+    return `<details class="reasoning-block" ${openAttr}>
+    <summary class="reasoning-header">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       Razonamiento
-    </div>
-    <div class="reasoning-content${colClass}">${renderMarkdown(reasoningText)}</div>
-  </div>`;
+    </summary>
+    <div class="reasoning-content">${renderMarkdown(reasoningText)}</div>
+  </details>`;
 }
 
 // ===== Scroll =====

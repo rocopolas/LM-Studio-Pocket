@@ -659,13 +659,18 @@ body {
   color: var(--text-accent);
   font-weight: 500;
   user-select: none;
+  list-style: none;
+}
+
+.reasoning-header::-webkit-details-marker {
+  display: none;
 }
 
 .reasoning-header svg {
   transition: transform var(--transition-fast);
 }
 
-.reasoning-header.collapsed svg {
+details:not([open]) .reasoning-header svg {
   transform: rotate(-90deg);
 }
 
@@ -675,10 +680,6 @@ body {
   color: var(--text-secondary);
   line-height: 1.5;
   border-top: 1px solid rgba(167, 139, 250, 0.1);
-}
-
-.reasoning-content.collapsed {
-  display: none;
 }
 
 /* Markdown content styles */
@@ -1934,5 +1935,4 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
 }
