@@ -81,10 +81,37 @@ npm run dev
 ```
 *(The server is exposed to your local network by default).*
 
-### 6. Access from Your Phone
+### 6. Access from Your Phone (Local)
 1. Make sure your phone is connected to the **same WiFi** as your computer.
 2. Open the browser on your phone and enter your computer's IP address followed by the Vite port (e.g., `http://192.168.1.100:5173`).
 3. (Optional) Tap the 3 dots in your mobile browser and select **"Add to Home Screen"** to use it as a native app.
 4. In the app, open the sidebar > **Settings**, and make sure the **Server URL** points to your PC's IP in LM Studio (e.g., `http://192.168.1.100:1234`).
 5. Enable **Web Search** in Settings to use SearXNG.
 6. Start chatting!
+
+---
+
+## 🌍 Remote Access (Anywhere) with Tailscale
+
+Want to use LM Studio Pocket while away from home (on mobile data or another WiFi)? The easiest and most secure way is to use **Tailscale**, a free Zero-Tier VPN.
+
+### 1. Install Tailscale
+1. Create a free account at [tailscale.com](https://tailscale.com/).
+2. Install the Tailscale app on your **Host Computer** (where LM Studio runs).
+3. Install the Tailscale app on your **Phone** (available on iOS and Android).
+4. Log into the same account on both devices and connect them.
+
+### 2. Configure LM Studio Pocket
+Once Tailscale is connected on your computer, it will assign you a internal IP address (usually starting with `100.x.x.x`).
+1. Find your computer's Tailscale IP (click the Tailscale icon in your computer's system tray/menu bar, or run `tailscale ip` in terminal).
+2. Open the `.env` file in the `lm-studio-pocket` directory and update the `VITE_SERVER_URL` to use your computer's Tailscale IP instead of the local LAN IP:
+```env
+VITE_SERVER_URL=http://[YOUR_TAILSCALE_IP]:1234
+```
+3. Restart the web app: `Ctrl+C` then `npm run dev`.
+
+### 3. Connect from Your Phone
+1. Make sure the Tailscale VPN is **active** on your phone.
+2. Open your phone's browser and go directly to your computer's Tailscale IP on port 5173: `http://[YOUR_TAILSCALE_IP]:5173`
+3. Everything will work seamlessly, securely encrypted through your own private network!
+
