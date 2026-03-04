@@ -27,6 +27,7 @@
     pendingImages: [], // { dataUrl, name }
     messageQueue: [], // { text, images: [dataUrl] }
     isGenerating: false,
+    generatingConvId: null,
     abortController: null,
   };
 
@@ -633,7 +634,8 @@
   };
 
   // ===== Memory Extraction =====
-  async function extractAndSaveMemory(userText, assistantText) {
+  async function extractAndSaveMemory(userText, assistantText, attempt = 1) {
+    const MAX_RETRIES = 3;
     if (!state.settings.memoryEnabled) return;
     if (!userText || !assistantText) return;
 
@@ -642,7 +644,8 @@
     if (!assistantText) return;
 
     const currentMemory = state.settings.memory.trim();
-    const extractionPrompt = `You are a memory extraction assistant. Your ONLY job is to analyze a conversation exchange and extract important facts about the user that should be remembered for future conversations.
+    const extractionPrompt = `/no_think
+You are a memory extraction assistant. Your ONLY job is to analyze a conversation exchange and extract important facts about the user that should be remembered for future conversations. Do NOT use <think> tags. Respond directly.
 
 Current saved memory:
 ${currentMemory ? `"""\n${currentMemory}\n"""` : '(empty)'}
@@ -658,7 +661,8 @@ Rules:
 - If there is nothing new worth remembering, respond with EXACTLY: [NO_UPDATE]
 - If there ARE new facts, respond with ONLY the new bullet points to add (starting each with "- "), nothing else
 - Keep each bullet point concise (one line)
-- Respond in the same language the user used`;
+- Respond in the same language the user used
+- Do NOT wrap your response in any tags`;
 
     try {
       const conv = getCurrentConversation();
@@ -683,17 +687,24 @@ Rules:
       if (!resp.ok) return;
 
       const data = await resp.json();
-      let result = (data.choices?.[0]?.message?.content || '').trim();
+      const rawResult = (data.choices?.[0]?.message?.content || '').trim();
 
-      // Strip <think>...</think> reasoning from extraction response
-      result = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      if (!rawResult || rawResult.includes('[NO_UPDATE]')) return;
 
-      if (!result || result.includes('[NO_UPDATE]')) return;
+      // Extract bullet points (lines starting with "- ") from anywhere in the response,
+      // even if the model wrapped its answer in <think> tags
+      const bulletPoints = rawResult
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.startsWith('- '))
+        .join('\n');
+
+      if (!bulletPoints) return;
 
       // Append new facts to memory
       const newMemory = currentMemory
-        ? `${currentMemory}\n${result}`
-        : result;
+        ? `${currentMemory}\n${bulletPoints}`
+        : bulletPoints;
 
       state.settings.memory = newMemory;
       saveSettings();
@@ -705,8 +716,14 @@ Rules:
 
       showToast('🧠 Memory updated', 'success');
     } catch (e) {
-      // Silently fail — memory extraction is non-critical
-      console.warn('Memory extraction failed:', e.message);
+      // Retry on network errors
+      if (attempt < MAX_RETRIES) {
+        const delay = attempt * 2000;
+        console.warn(`Memory extraction attempt ${attempt} failed, retrying in ${delay}ms...`);
+        setTimeout(() => extractAndSaveMemory(userText, assistantText, attempt + 1), delay);
+      } else {
+        console.warn('Memory extraction failed after all retries:', e.message);
+      }
     }
   }
 
@@ -810,116 +827,149 @@ Rules:
 
     // Switch buttons
     state.isGenerating = true;
+    state.generatingConvId = conv.id;
     DOM.btnSend.classList.add('hidden');
     DOM.btnStop.classList.remove('hidden');
 
     let messageText = '';
     let reasoningText = '';
     let isReasoning = false;
+    const domOk = () => assistantDiv.isConnected;
 
-    try {
-      await sendChatStream(
-        conv.messages.filter(m => m.role === 'user').map(m => ({
-          role: 'user',
-          text: m.text,
-          images: m.images,
-        })),
-        (eventType, data) => {
-          switch (eventType) {
-            case 'reasoning.start':
-              isReasoning = true;
-              break;
-            case 'reasoning.delta':
-              reasoningText += data.content || '';
-              break;
-            case 'reasoning.end':
-              isReasoning = false;
-              if (reasoningText) {
-                assistantMsg.reasoning = reasoningText;
-                // Insert reasoning block
-                const contentEl = assistantDiv.querySelector('.message-content');
-                let reasoningBlock = contentEl.querySelector('.reasoning-block');
-                if (!reasoningBlock) {
-                  reasoningBlock = document.createElement('div');
-                  reasoningBlock.className = 'reasoning-block';
-                  reasoningBlock.innerHTML = `
-                    <div class="reasoning-header collapsed" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed')">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-                      Razonamiento
-                    </div>
-                    <div class="reasoning-content collapsed">${renderMarkdown(reasoningText)}</div>
-                  `;
-                  contentEl.insertBefore(reasoningBlock, textEl);
-                }
+    const onStreamEvent = (eventType, data) => {
+      switch (eventType) {
+        case 'reasoning.start':
+          isReasoning = true;
+          break;
+        case 'reasoning.delta':
+          reasoningText += data.content || '';
+          break;
+        case 'reasoning.end':
+          isReasoning = false;
+          if (reasoningText) {
+            assistantMsg.reasoning = reasoningText;
+            if (domOk()) {
+              const contentEl = assistantDiv.querySelector('.message-content');
+              let reasoningBlock = contentEl.querySelector('.reasoning-block');
+              if (!reasoningBlock) {
+                reasoningBlock = document.createElement('div');
+                reasoningBlock.className = 'reasoning-block';
+                reasoningBlock.innerHTML = `
+                  <div class="reasoning-header collapsed" onclick="this.classList.toggle('collapsed');this.nextElementSibling.classList.toggle('collapsed')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    Razonamiento
+                  </div>
+                  <div class="reasoning-content collapsed">${renderMarkdown(reasoningText)}</div>
+                `;
+                contentEl.insertBefore(reasoningBlock, textEl);
               }
-              break;
-            case 'message.start':
-              textEl.innerHTML = '';
-              break;
-            case 'message.delta':
-              messageText += data.content || '';
-              textEl.innerHTML = renderMarkdown(messageText);
-              scrollToBottom();
-              break;
-            case 'message.end':
-              assistantMsg.text = messageText;
-              break;
-            case 'chat.end':
-              if (data.result) {
-                assistantMsg.stats = data.result.stats;
-                if (data.result.response_id) {
-                  conv.lastResponseId = data.result.response_id;
-                }
-                // Render stats
-                if (assistantMsg.stats) {
-                  const s = assistantMsg.stats;
-                  const statsDiv = document.createElement('div');
-                  statsDiv.className = 'message-stats';
-                  statsDiv.innerHTML = `
-                    <span>⚡ ${s.tokens_per_second?.toFixed(1) || '?'} t/s</span>
-                    <span>📝 ${s.total_output_tokens || '?'} tokens</span>
-                    <span>⏱️ ${s.time_to_first_token_seconds?.toFixed(2) || '?'}s TTFT</span>
-                  `;
-                  assistantDiv.querySelector('.message-content').appendChild(statsDiv);
-                }
-                // Auto-extract memory (fire-and-forget)
-                if (state.settings.memoryEnabled && messageText) {
-                  extractAndSaveMemory(text, messageText);
-                }
-              }
-              break;
-            case 'error':
-              const errMsg = data.error?.message || 'Error desconocido';
-              showToast(errMsg, 'error');
-              break;
-            case 'prompt_processing.start':
-              textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Processing prompt...</span>';
-              break;
-            case 'model_load.start':
-              textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Loading model...</span>';
-              break;
-            case 'model_load.progress':
-              const pct = data.progress != null ? `${Math.round(data.progress * 100)}%` : '';
-              textEl.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Loading model... ${pct}</span>`;
-              break;
+            }
           }
+          break;
+        case 'message.start':
+          if (domOk()) textEl.innerHTML = '';
+          break;
+        case 'message.delta':
+          messageText += data.content || '';
+          if (domOk()) {
+            textEl.innerHTML = renderMarkdown(messageText);
+            scrollToBottom();
+          }
+          break;
+        case 'message.end':
+          assistantMsg.text = messageText;
+          break;
+        case 'chat.end':
+          if (data.result) {
+            assistantMsg.stats = data.result.stats;
+            if (data.result.response_id) {
+              conv.lastResponseId = data.result.response_id;
+            }
+            if (domOk() && assistantMsg.stats) {
+              const s = assistantMsg.stats;
+              const statsDiv = document.createElement('div');
+              statsDiv.className = 'message-stats';
+              statsDiv.innerHTML = `
+                <span>⚡ ${s.tokens_per_second?.toFixed(1) || '?'} t/s</span>
+                <span>📝 ${s.total_output_tokens || '?'} tokens</span>
+                <span>⏱️ ${s.time_to_first_token_seconds?.toFixed(2) || '?'}s TTFT</span>
+              `;
+              assistantDiv.querySelector('.message-content').appendChild(statsDiv);
+            }
+            if (state.settings.memoryEnabled && messageText) {
+              setTimeout(() => extractAndSaveMemory(text, messageText), 2000);
+            }
+          }
+          break;
+        case 'error':
+          showToast(data.error?.message || 'Error desconocido', 'error');
+          break;
+        case 'prompt_processing.start':
+          if (domOk()) textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Processing prompt...</span>';
+          break;
+        case 'model_load.start':
+          if (domOk()) textEl.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Loading model...</span>';
+          break;
+        case 'model_load.progress':
+          if (domOk()) {
+            const pct = data.progress != null ? `${Math.round(data.progress * 100)}%` : '';
+            textEl.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Loading model... ${pct}</span>`;
+          }
+          break;
+      }
+    };
+
+    const buildMsgs = () => conv.messages.filter(m => m.role === 'user').map(m => ({
+      role: 'user', text: m.text, images: m.images,
+    }));
+
+    // Stream with auto-retry on network errors
+    const MAX_RETRIES = 3;
+    let lastError = null;
+    try {
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          if (attempt > 0) {
+            const delay = attempt * 2000;
+            showToast(`Network error, retrying (${attempt}/${MAX_RETRIES})...`, 'warning');
+            if (domOk()) {
+              textEl.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div><span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">Retrying (${attempt}/${MAX_RETRIES})...</span>`;
+            }
+            await new Promise(r => setTimeout(r, delay));
+          }
+          await sendChatStream(buildMsgs(), onStreamEvent);
+          lastError = null;
+          break;
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            assistantMsg.text = messageText || '*(generación detenida)*';
+            if (domOk()) textEl.innerHTML = renderMarkdown(assistantMsg.text);
+            lastError = null;
+            break;
+          }
+          lastError = err;
+          if (messageText) break; // Don't retry if we already got partial content
         }
-      );
-    } catch (e) {
-      if (e.name === 'AbortError') {
-        assistantMsg.text = messageText || '*(generación detenida)*';
-        textEl.innerHTML = renderMarkdown(assistantMsg.text);
-      } else {
-        assistantMsg.text = `*Error: ${e.message}*`;
-        textEl.innerHTML = renderMarkdown(assistantMsg.text);
-        showToast(`Error: ${e.message}`, 'error');
+      }
+      if (lastError) {
+        assistantMsg.text = messageText || `*Error: ${lastError.message}*`;
+        if (domOk()) textEl.innerHTML = renderMarkdown(assistantMsg.text);
+        showToast(`Error: ${lastError.message}`, 'error');
       }
     } finally {
+      const genConvId = state.generatingConvId;
       state.isGenerating = false;
+      state.generatingConvId = null;
       state.abortController = null;
       DOM.btnSend.classList.remove('hidden');
       DOM.btnStop.classList.add('hidden');
       saveConversations();
+
+      // If user is viewing the conv that just finished generating, re-render to ensure consistency
+      if (state.currentConversationId === genConvId && !assistantDiv.isConnected) {
+        renderChat();
+      }
+
       updateSendButton();
       scrollToBottom();
       updateQueueBadge();
@@ -934,11 +984,11 @@ Rules:
           queuedEl.remove();
         }
 
-        // Remove the queued user message from conv (sendMessage will re-add it)
-        const conv = getCurrentConversation();
-        if (conv) {
-          const idx = conv.messages.findIndex(m => m.queued && m.text === next.text);
-          if (idx !== -1) conv.messages.splice(idx, 1);
+        // Remove the queued user message from the generating conv
+        const genConv = state.conversations.find(c => c.id === genConvId);
+        if (genConv) {
+          const idx = genConv.messages.findIndex(m => m.queued && m.text === next.text);
+          if (idx !== -1) genConv.messages.splice(idx, 1);
         }
 
         // Feed back into sendMessage via input
