@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description"
+    content="Chat with AI models via LM Studio API — mobile-friendly interface with image support">
+  <meta name="theme-color" content="#0a0a1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>LM Studio Pocket</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <!-- Sidebar Overlay (mobile) -->
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </div>
+        <span class="logo-text">LM Studio Pocket</span>
+      </div>
+      <button id="btn-new-chat" class="btn-icon btn-new-chat" title="Nueva conversación">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+    </div>
+    <div id="conversations-list" class="conversations-list">
+      <!-- Conversations injected by JS -->
+    </div>
+    <div class="sidebar-footer">
+      <button id="btn-models" class="btn-settings" style="margin-bottom: 4px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+          <line x1="12" y1="22.08" x2="12" y2="12" />
+        </svg>
+        <span>Modelos</span>
+      </button>
+      <button id="btn-settings" class="btn-settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        <span>Configuración</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Top Bar -->
+    <header class="topbar">
+      <button id="btn-menu" class="btn-icon btn-menu" title="Menú">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+      <div class="topbar-info">
+        <h1 id="chat-title" class="chat-title">Nueva Conversación</h1>
+        <div class="model-badge-wrapper">
+          <button id="model-badge" class="model-badge" title="Cambiar modelo para este chat">
+            <span id="model-badge-text">Sin modelo</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          <div id="model-picker" class="model-picker hidden">
+            <div id="model-picker-list" class="model-picker-list"></div>
+          </div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="btn-clear-chat" class="btn-icon" title="Limpiar chat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Chat Area -->
+    <div id="chat-area" class="chat-area">
+      <div id="welcome-screen" class="welcome-screen">
+        <div class="welcome-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="url(#grad1)" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <defs>
+              <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#a78bfa;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </div>
+        <h2>Bienvenido a LM Studio Pocket</h2>
+        <p>Conectá tu LLM local y empezá a chatear desde cualquier dispositivo</p>
+        <div class="welcome-tips">
+          <div class="tip-card">
+            <div class="tip-icon">💬</div>
+            <div class="tip-text">Escribí un mensaje para comenzar</div>
+          </div>
+          <div class="tip-card">
+            <div class="tip-icon">🖼️</div>
+            <div class="tip-text">Adjuntá imágenes arrastrando, pegando o desde el selector</div>
+          </div>
+          <div class="tip-card">
+            <div class="tip-icon">⚙️</div>
+            <div class="tip-text">Configurá el servidor y modelo en Ajustes</div>
+          </div>
+        </div>
+      </div>
+      <div id="messages-container" class="messages-container"></div>
+    </div>
+
+    <!-- Image Preview Bar -->
+    <div id="image-preview-bar" class="image-preview-bar hidden">
+      <div id="image-previews" class="image-previews"></div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="input-area">
+      <div class="input-wrapper">
+        <button id="btn-attach" class="btn-icon btn-attach" title="Adjuntar imagen">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        </button>
+        <textarea id="message-input" class="message-input" placeholder="Escribí un mensaje..." rows="1"></textarea>
+        <button id="btn-send" class="btn-icon btn-send" title="Enviar" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+        </button>
+        <button id="btn-stop" class="btn-icon btn-stop hidden" title="Detener generación">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="6" y="6" width="12" height="12" rx="2" />
+          </svg>
+        </button>
+      </div>
+      <input type="file" id="file-input" accept="image/*" multiple hidden>
+    </div>
+  </main>
+
+  <!-- Settings Panel -->
+  <div id="settings-overlay" class="settings-overlay"></div>
+  <div id="settings-panel" class="settings-panel">
+    <div class="settings-header">
+      <h2>Configuración</h2>
+      <button id="btn-close-settings" class="btn-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+    <div class="settings-body">
+      <!-- Connection -->
+      <section class="settings-section">
+        <h3 class="settings-section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+          Conexión
+        </h3>
+        <div class="form-group">
+          <label for="setting-server-url">URL del Servidor</label>
+          <input type="url" id="setting-server-url" class="form-input" placeholder="http://192.168.1.100:1234"
+            value="http://localhost:1234">
+        </div>
+        <div class="form-group">
+          <label for="setting-api-key">API Key <span class="label-hint">(opcional)</span></label>
+          <div class="input-with-toggle">
+            <input type="password" id="setting-api-key" class="form-input" placeholder="lm-studio">
+            <button id="btn-toggle-key" class="btn-icon btn-toggle-key" title="Mostrar/ocultar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button id="btn-test-connection" class="btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          Probar Conexión
+        </button>
+        <div id="connection-status" class="connection-status"></div>
+      </section>
+
+      <!-- Model -->
+      <section class="settings-section">
+        <h3 class="settings-section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+          Modelo
+        </h3>
+        <div class="form-group">
+          <label for="setting-model">Modelo Activo</label>
+          <div class="select-wrapper">
+            <select id="setting-model" class="form-select">
+              <option value="">— Cargá modelos primero —</option>
+            </select>
+            <button id="btn-refresh-models" class="btn-icon btn-refresh" title="Recargar modelos">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10" />
+                <polyline points="1 20 1 14 7 14" />
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+              </svg>
+            </button>
+          </div>
+          <div id="model-info" class="model-info"></div>
+        </div>
+      </section>
+
+      <!-- System Prompt -->
+      <section class="settings-section">
+        <h3 class="settings-section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          System Prompt
+        </h3>
+        <div class="form-group">
+          <textarea id="setting-system-prompt" class="form-textarea" rows="4"
+            placeholder="Sos un asistente útil y amigable..."></textarea>
+        </div>
+      </section>
+
+      <!-- Parameters -->
+      <section class="settings-section">
+        <h3 class="settings-section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="21" x2="4" y2="14" />
+            <line x1="4" y1="10" x2="4" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12" y2="3" />
+            <line x1="20" y1="21" x2="20" y2="16" />
+            <line x1="20" y1="12" x2="20" y2="3" />
+            <line x1="1" y1="14" x2="7" y2="14" />
+            <line x1="9" y1="8" x2="15" y2="8" />
+            <line x1="17" y1="16" x2="23" y2="16" />
+          </svg>
+          Parámetros
+        </h3>
+        <div class="form-group">
+          <label for="setting-temperature">Temperature <span id="temperature-value"
+              class="param-value">0.7</span></label>
+          <input type="range" id="setting-temperature" class="form-range" min="0" max="1" step="0.05" value="0.7">
+        </div>
+        <div class="form-group">
+          <label for="setting-top-p">Top P <span id="top-p-value" class="param-value">0.9</span></label>
+          <input type="range" id="setting-top-p" class="form-range" min="0" max="1" step="0.05" value="0.9">
+        </div>
+        <div class="form-group">
+          <label for="setting-top-k">Top K <span id="top-k-value" class="param-value">40</span></label>
+          <input type="range" id="setting-top-k" class="form-range" min="1" max="200" step="1" value="40">
+        </div>
+        <div class="form-group">
+          <label for="setting-min-p">Min P <span id="min-p-value" class="param-value">0.05</span></label>
+          <input type="range" id="setting-min-p" class="form-range" min="0" max="1" step="0.01" value="0.05">
+        </div>
+        <div class="form-group">
+          <label for="setting-repeat-penalty">Repeat Penalty <span id="repeat-penalty-value"
+              class="param-value">1.1</span></label>
+          <input type="range" id="setting-repeat-penalty" class="form-range" min="1" max="2" step="0.05" value="1.1">
+        </div>
+        <div class="form-group">
+          <label for="setting-max-tokens">Max Tokens <span id="max-tokens-value" class="param-value">2048</span></label>
+          <input type="number" id="setting-max-tokens" class="form-input" min="1" max="32768" value="2048">
+        </div>
+        <div class="form-group">
+          <label for="setting-context-length">Context Length <span id="context-length-value"
+              class="param-value">4096</span></label>
+          <input type="number" id="setting-context-length" class="form-input" min="256" max="131072" value="4096">
+        </div>
+      </section>
+    </div>
+    <div class="settings-footer">
+      <button id="btn-save-settings" class="btn-primary">Guardar Configuración</button>
+    </div>
+  </div>
+
+  <!-- Models Management Panel -->
+  <div id="models-overlay" class="settings-overlay"></div>
+  <div id="models-panel" class="settings-panel models-panel">
+    <div class="settings-header">
+      <h2>Gestión de Modelos</h2>
+      <button id="btn-close-models" class="btn-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+    <div class="settings-body">
+      <!-- Download Model -->
+      <section class="settings-section">
+        <h3 class="settings-section-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Descargar Modelo
+        </h3>
+        <div class="form-group">
+          <label for="download-model-id">ID del Modelo</label>
+          <input type="text" id="download-model-id" class="form-input"
+            placeholder="ej: ibm/granite-4-micro o URL de HuggingFace">
+        </div>
+        <div class="form-group">
+          <label for="download-quantization">Cuantización <span class="label-hint">(opcional, solo para HF
+              links)</span></label>
+          <input type="text" id="download-quantization" class="form-input" placeholder="ej: Q4_K_M">
+        </div>
+        <button id="btn-download-model" class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Descargar
+        </button>
+        <div id="download-status" class="download-status"></div>
+      </section>
+
+      <!-- Models List -->
+      <section class="settings-section">
+        <div class="models-list-header">
+          <h3 class="settings-section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            </svg>
+            Modelos Disponibles
+          </h3>
+          <button id="btn-refresh-models-panel" class="btn-icon btn-refresh" title="Recargar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+          </button>
+        </div>
+        <div id="models-list-container" class="models-list-container">
+          <div class="models-list-empty">Cargando modelos...</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Drop Zone Overlay -->
+  <div id="drop-zone" class="drop-zone">
+    <div class="drop-zone-content">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <polyline points="21 15 16 10 5 21" />
+      </svg>
+      <p>Soltá la imagen aquí</p>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- External Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
