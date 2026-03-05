@@ -159,7 +159,7 @@ export async function sendMessage() {
                 // If reasoning consumed all tokens with no actual response, clear typing indicator
                 if (!messageText && domOk()) {
                     if (reasoningText) {
-                        assistantMsg.text = '*⚠️ El modelo usó todos los tokens en el razonamiento y no generó respuesta. Intenta aumentar Max Tokens en Settings.*';
+                        assistantMsg.text = '*⚠️ The model used all tokens in reasoning and did not generate a response. Try increasing Max Tokens in Settings.*';
                     } else {
                         assistantMsg.text = '';
                     }
@@ -193,7 +193,7 @@ export async function sendMessage() {
                 }
                 break;
             case 'error':
-                showToast(data.error?.message || 'Error desconocido', 'error');
+                showToast(data.error?.message || 'Unknown error', 'error');
                 break;
             case 'prompt_processing.start':
                 if (domOk()) textEl.innerHTML = buildTypingHtml('Processing prompt...');
@@ -249,7 +249,7 @@ export async function sendMessage() {
                 break;
             } catch (err) {
                 if (err.name === 'AbortError') {
-                    assistantMsg.text = messageText || '*(generación detenida)*';
+                    assistantMsg.text = messageText || '*(generation stopped)*';
                     if (domOk()) textEl.innerHTML = renderMarkdown(assistantMsg.text);
                     lastError = null;
                     break;

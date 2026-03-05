@@ -67,7 +67,7 @@ function createModelCard(m) {
     if (m.params_string) tags.push(`<span class="model-card-tag">${escapeHtml(m.params_string)}</span>`);
     tags.push(`<span class="model-card-tag">${sizeMB} MB</span>`);
     tags.push(`<span class="model-card-tag">ctx ${m.max_context_length}</span>`);
-    if (m.capabilities?.vision) tags.push(`<span class="model-card-tag vision">👁️ Visión</span>`);
+    if (m.capabilities?.vision) tags.push(`<span class="model-card-tag vision">👁️ Vision</span>`);
     if (m.capabilities?.trained_for_tool_use) tags.push(`<span class="model-card-tag tools">🔧 Tools</span>`);
     if (m.format) tags.push(`<span class="model-card-tag">${escapeHtml(m.format)}</span>`);
 
@@ -76,7 +76,7 @@ function createModelCard(m) {
         if (isLoaded) {
             actionsHtml += `<button class="btn-unload" data-instance="${escapeHtml(m.loaded_instances[0].id)}">⏏ Unload</button>`;
             if (!isSelected) {
-                actionsHtml += `<button class="btn-select-model" data-key="${escapeHtml(m.key)}">✓ Usar</button>`;
+                actionsHtml += `<button class="btn-select-model" data-key="${escapeHtml(m.key)}">✓ Use</button>`;
             } else {
                 actionsHtml += `<button class="btn-select-model" disabled style="opacity:0.5">✓ In use</button>`;
             }
@@ -98,7 +98,7 @@ function createModelCard(m) {
         <div class="model-card-publisher">${escapeHtml(m.publisher)} / ${escapeHtml(m.key)}</div>
       </div>
       <span class="model-card-status ${isLoaded ? 'loaded' : 'unloaded'}">
-        ${isLoaded ? '● Cargado' : '○ Descargado'}
+        ${isLoaded ? '● Loaded' : '○ Unloaded'}
       </span>
     </div>
     <div class="model-card-tags">${tags.join('')}</div>

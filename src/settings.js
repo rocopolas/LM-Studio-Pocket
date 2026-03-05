@@ -84,8 +84,8 @@ export function populateModelSelect() {
         for (const m of state.models.filter(m => m.type === 'llm')) {
             const opt = document.createElement('option');
             opt.value = m.key;
-            const loaded = m.loaded_instances?.length > 0 ? ' ● Cargado' : '';
-            const vision = m.capabilities?.vision ? ' 👁️' : '';
+            const loaded = m.loaded_instances?.length > 0 ? ' ● Loaded' : '';
+            const vision = m.capabilities?.vision ? ' 👁️ Vision' : '';
             opt.textContent = `${m.display_name} (${m.params_string || '?'})${vision}${loaded}`;
             if (m.key === state.settings.model) opt.selected = true;
             select.appendChild(opt);
@@ -126,9 +126,9 @@ export function showModelInfo() {
     const tags = [];
     if (model.architecture) tags.push(`<span class="info-tag">${model.architecture}</span>`);
     if (model.quantization?.name) tags.push(`<span class="info-tag">${model.quantization.name}</span>`);
-    if (model.capabilities?.vision) tags.push(`<span class="info-tag vision">👁️ Visión</span>`);
+    if (model.capabilities?.vision) tags.push(`<span class="info-tag vision">👁️ Vision</span>`);
     if (model.capabilities?.trained_for_tool_use) tags.push(`<span class="info-tag">🔧 Tools</span>`);
-    if (model.loaded_instances?.length > 0) tags.push(`<span class="info-tag" style="color:var(--success)">● Cargado</span>`);
+    if (model.loaded_instances?.length > 0) tags.push(`<span class="info-tag" style="color:var(--success)">● Loaded</span>`);
     const sizeMB = (model.size_bytes / (1024 * 1024)).toFixed(0);
     tags.push(`<span class="info-tag">${sizeMB} MB</span>`);
     tags.push(`<span class="info-tag">ctx ${model.max_context_length}</span>`);
@@ -139,7 +139,7 @@ export async function testConnection() {
     DOM.connectionStatus.className = 'connection-status';
     DOM.connectionStatus.style.display = 'none';
     DOM.btnTestConnection.disabled = true;
-    DOM.btnTestConnection.innerHTML = '<div class="spinner"></div> Probando...';
+    DOM.btnTestConnection.innerHTML = '<div class="spinner"></div> Testing...';
 
     try {
         const url = DOM.settingServerUrl.value.replace(/\/+$/, '');
