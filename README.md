@@ -4,6 +4,8 @@ LM Studio Pocket is a Web App designed to connect you remotely (from your phone 
 
 Featuring a premium "mobile-first" design, dark mode, and *glassmorphism* aesthetics, it allows you to comfortably chat with your LLMs, manage your models, and process images.
 
+![alt text](https://files.catbox.moe/7py96r.png)
+![alt text](https://files.catbox.moe/jh3ath.png)
 
 ## 🚀 Quick Install (One Command)
 

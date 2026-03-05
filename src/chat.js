@@ -119,6 +119,7 @@ export async function sendMessage() {
                 break;
             case 'reasoning.delta':
                 reasoningText += data.content || '';
+                assistantMsg.reasoning = reasoningText;
                 if (domOk()) {
                     const contentEl = assistantDiv.querySelector('.message-content');
                     let reasoningBlock = contentEl.querySelector('.reasoning-block');
@@ -147,6 +148,7 @@ export async function sendMessage() {
                 break;
             case 'message.delta':
                 messageText += data.content || '';
+                assistantMsg.text = messageText;
                 if (domOk()) {
                     textEl.innerHTML = renderMarkdown(messageText);
                     scrollToBottom();
