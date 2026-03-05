@@ -49,10 +49,35 @@ export function buildReasoningHtml(reasoningText, isStreaming = false) {
 // ===== Scroll =====
 
 let _scrollRafId = null;
-export function scrollToBottom() {
+let _wasAtBottom = true;
+
+// Optional: listen to user scrolling to know when they manually leave the bottom
+DOM.chatArea.addEventListener('scroll', () => {
+    const { scrollTop, scrollHeight, clientHeight } = DOM.chatArea;
+    _wasAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+
+    if (_wasAtBottom) {
+        DOM.btnScrollBottom.classList.add('hidden');
+    } else {
+        DOM.btnScrollBottom.classList.remove('hidden');
+    }
+});
+
+DOM.btnScrollBottom.addEventListener('click', () => {
+    scrollToBottom(true);
+});
+
+export function scrollToBottom(force = false) {
     if (_scrollRafId) return;
+
+    // Only auto-scroll if the user was already near the bottom, or if we force it (e.g., brand new message)
+    if (!force && !_wasAtBottom) {
+        return;
+    }
+
     _scrollRafId = requestAnimationFrame(() => {
         DOM.chatArea.scrollTop = DOM.chatArea.scrollHeight;
+        _wasAtBottom = true;
         _scrollRafId = null;
     });
 }

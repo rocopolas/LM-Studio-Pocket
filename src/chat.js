@@ -100,7 +100,7 @@ export async function sendMessage() {
     const textEl = assistantDiv.querySelector('.message-text');
 
     textEl.innerHTML = buildTypingHtml();
-    scrollToBottom();
+    scrollToBottom(true);
 
     state.isGenerating = true;
     state.generatingConvId = conv.id;

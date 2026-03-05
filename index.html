@@ -144,10 +144,18 @@
       <div id="messages-container" class="messages-container"></div>
     </div>
 
-    <!-- Image Preview Bar -->
     <div id="image-preview-bar" class="image-preview-bar hidden">
       <div id="image-previews" class="image-previews"></div>
     </div>
+
+    <!-- Floating scroll button now explicitly placed relative to the MAIN flex container to anchor it -->
+    <button id="btn-scroll-bottom" class="btn-icon btn-scroll-bottom hidden" title="Scroll to bottom">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <polyline points="19 12 12 19 5 12"></polyline>
+      </svg>
+    </button>
 
     <!-- Input Area -->
     <div class="input-area">

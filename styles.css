@@ -607,6 +607,39 @@ body {
   word-break: break-word;
 }
 
+/* Floating scroll to bottom button */
+.btn-scroll-bottom {
+  position: absolute;
+  bottom: 90px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  transition: all var(--transition-normal);
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.btn-scroll-bottom.hidden {
+  opacity: 0;
+  transform: translateY(20px) scale(0.9);
+  pointer-events: none;
+}
+
+.btn-scroll-bottom:hover {
+  background: var(--bg-glass-hover);
+  border-color: var(--accent-primary);
+  transform: translateY(-2px) scale(1);
+}
+
 .message.user .message-content {
   background: var(--accent-gradient);
   color: white;

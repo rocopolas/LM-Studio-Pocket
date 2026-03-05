@@ -20,6 +20,7 @@ export const DOM = {
     messagesContainer: $('#messages-container'),
     imagePreviewBar: $('#image-preview-bar'),
     imagePreviews: $('#image-previews'),
+    btnScrollBottom: $('#btn-scroll-bottom'),
     messageInput: $('#message-input'),
     btnAttach: $('#btn-attach'),
     btnSend: $('#btn-send'),
