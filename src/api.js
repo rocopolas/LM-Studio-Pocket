@@ -23,7 +23,9 @@ export async function fetchModels() {
     if (!respAll.ok) throw new Error(`HTTP ${respAll.status}`);
 
     const dataAll = await respAll.json();
-    return dataAll.models || [];
+    const models = dataAll.models || [];
+
+    return models;
 }
 
 export async function sendChatStream(messages, onEvent, searchContext = '') {
@@ -53,8 +55,11 @@ export async function sendChatStream(messages, onEvent, searchContext = '') {
             m.key.endsWith(selectedModelKey) ||
             (m.variants && m.variants.some(v => v.includes(selectedModelKey)))
         );
-        if (modelInfo && modelInfo.loaded_instances && modelInfo.loaded_instances.length > 0) {
-            targetModelId = modelInfo.loaded_instances[0].id;
+        if (modelInfo) {
+            targetModelId = modelInfo.key; // Always upgrade to full native key
+            if (modelInfo.loaded_instances && modelInfo.loaded_instances.length > 0) {
+                targetModelId = modelInfo.loaded_instances[0].id;
+            }
         }
     }
 
