@@ -121,8 +121,9 @@ export async function sendMessage() {
         return currentAssistantDiv.isConnected;
     };
 
+    const getTextEl = () => currentAssistantDiv.querySelector('.message-text');
+
     const onStreamEvent = (eventType, data) => {
-        const getTextEl = () => currentAssistantDiv.querySelector('.message-text');
         switch (eventType) {
             case 'reasoning.start':
                 isReasoning = true;
