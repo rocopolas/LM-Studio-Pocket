@@ -110,9 +110,19 @@ export async function sendMessage() {
     let messageText = '';
     let reasoningText = '';
     let isReasoning = false;
-    const domOk = () => assistantDiv.isConnected;
+    let currentAssistantDiv = assistantDiv;
+    const domOk = () => {
+        if (!currentAssistantDiv.isConnected) {
+            const newDiv = document.querySelector(`.message[data-id="${assistantMsg.id}"]`);
+            if (newDiv) {
+                currentAssistantDiv = newDiv;
+            }
+        }
+        return currentAssistantDiv.isConnected;
+    };
 
     const onStreamEvent = (eventType, data) => {
+        const getTextEl = () => currentAssistantDiv.querySelector('.message-text');
         switch (eventType) {
             case 'reasoning.start':
                 isReasoning = true;
@@ -121,13 +131,13 @@ export async function sendMessage() {
                 reasoningText += data.content || '';
                 assistantMsg.reasoning = reasoningText;
                 if (domOk()) {
-                    const contentEl = assistantDiv.querySelector('.message-content');
+                    const contentEl = currentAssistantDiv.querySelector('.message-content');
                     let reasoningBlock = contentEl.querySelector('.reasoning-block');
                     if (!reasoningBlock) {
                         const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = buildReasoningHtml(reasoningText);
+                        tempDiv.innerHTML = buildReasoningHtml(reasoningText, true);
                         reasoningBlock = tempDiv.firstElementChild;
-                        contentEl.insertBefore(reasoningBlock, textEl);
+                        contentEl.insertBefore(reasoningBlock, getTextEl());
                     } else {
                         const reasoningContentEl = reasoningBlock.querySelector('.reasoning-content');
                         if (reasoningContentEl) {
@@ -144,13 +154,13 @@ export async function sendMessage() {
                 }
                 break;
             case 'message.start':
-                if (domOk()) textEl.innerHTML = '';
+                if (domOk()) getTextEl().innerHTML = '';
                 break;
             case 'message.delta':
                 messageText += data.content || '';
                 assistantMsg.text = messageText;
                 if (domOk()) {
-                    textEl.innerHTML = renderMarkdown(messageText);
+                    getTextEl().innerHTML = renderMarkdown(messageText);
                     scrollToBottom();
                 }
                 break;
@@ -165,7 +175,7 @@ export async function sendMessage() {
                     } else {
                         assistantMsg.text = '';
                     }
-                    textEl.innerHTML = renderMarkdown(assistantMsg.text);
+                    getTextEl().innerHTML = renderMarkdown(assistantMsg.text);
                 }
                 if (data.result) {
                     assistantMsg.stats = data.result.stats;
@@ -173,11 +183,11 @@ export async function sendMessage() {
                         conv.lastResponseId = data.result.response_id;
                     }
                     if (domOk() && assistantMsg.stats) {
-                        const statsHtml = buildStatsHtml(assistantMsg.stats);
+                        const statsHtml = buildStatsHtml(assistantMsg.stats, assistantMsg.id);
                         if (statsHtml) {
                             const statsDiv = document.createElement('div');
                             statsDiv.innerHTML = statsHtml;
-                            assistantDiv.querySelector('.message-content').appendChild(statsDiv.firstElementChild);
+                            currentAssistantDiv.querySelector('.message-content').appendChild(statsDiv.firstElementChild);
                         }
                     }
                     // Render search sources
@@ -186,7 +196,7 @@ export async function sendMessage() {
                         if (sourcesHtml) {
                             const sourcesDiv = document.createElement('div');
                             sourcesDiv.innerHTML = sourcesHtml;
-                            assistantDiv.querySelector('.message-content').appendChild(sourcesDiv.firstElementChild);
+                            currentAssistantDiv.querySelector('.message-content').appendChild(sourcesDiv.firstElementChild);
                         }
                     }
                     if (state.settings.memoryEnabled && messageText) {
@@ -198,15 +208,15 @@ export async function sendMessage() {
                 showToast(data.error?.message || 'Unknown error', 'error');
                 break;
             case 'prompt_processing.start':
-                if (domOk()) textEl.innerHTML = buildTypingHtml('Processing prompt...');
+                if (domOk()) getTextEl().innerHTML = buildTypingHtml('Processing prompt...');
                 break;
             case 'model_load.start':
-                if (domOk()) textEl.innerHTML = buildTypingHtml('Loading model...');
+                if (domOk()) getTextEl().innerHTML = buildTypingHtml('Loading model...');
                 break;
             case 'model_load.progress':
                 if (domOk()) {
                     const pct = data.progress != null ? `${Math.round(data.progress * 100)}%` : '';
-                    textEl.innerHTML = buildTypingHtml(`Loading model... ${pct}`);
+                    getTextEl().innerHTML = buildTypingHtml(`Loading model... ${pct}`);
                 }
                 break;
         }
@@ -220,7 +230,7 @@ export async function sendMessage() {
     let searchContext = '';
     if (state.settings.searchEnabled) {
         try {
-            if (domOk()) textEl.innerHTML = buildTypingHtml('🔍 Searching the web...');
+            if (domOk()) getTextEl().innerHTML = buildTypingHtml('🔍 Searching the web...');
             const searchResult = await searchWeb(text);
             searchContext = searchResult.contextText;
             if (searchResult.results.length > 0) {
@@ -230,7 +240,7 @@ export async function sendMessage() {
             console.warn('Web search failed:', err.message);
             showToast(`Search failed: ${err.message}`, 'warning');
         }
-        if (domOk()) textEl.innerHTML = buildTypingHtml();
+        if (domOk()) getTextEl().innerHTML = buildTypingHtml();
     }
 
     const MAX_RETRIES = CONFIG.MAX_CHAT_RETRIES;
@@ -242,7 +252,7 @@ export async function sendMessage() {
                     const delay = attempt * 2000;
                     showToast(`Network error, retrying (${attempt}/${MAX_RETRIES})...`, 'warning');
                     if (domOk()) {
-                        textEl.innerHTML = buildTypingHtml(`Retrying (${attempt}/${MAX_RETRIES})...`);
+                        getTextEl().innerHTML = buildTypingHtml(`Retrying (${attempt}/${MAX_RETRIES})...`);
                     }
                     await new Promise(r => setTimeout(r, delay));
                 }
@@ -252,7 +262,7 @@ export async function sendMessage() {
             } catch (err) {
                 if (err.name === 'AbortError') {
                     assistantMsg.text = messageText || '*(generation stopped)*';
-                    if (domOk()) textEl.innerHTML = renderMarkdown(assistantMsg.text);
+                    if (domOk()) getTextEl().innerHTML = renderMarkdown(assistantMsg.text);
                     lastError = null;
                     break;
                 }
@@ -262,7 +272,7 @@ export async function sendMessage() {
         }
         if (lastError) {
             assistantMsg.text = messageText || `*Error: ${lastError.message}*`;
-            if (domOk()) textEl.innerHTML = renderMarkdown(assistantMsg.text);
+            if (domOk()) getTextEl().innerHTML = renderMarkdown(assistantMsg.text);
             showToast(`Error: ${lastError.message}`, 'error');
         }
     } finally {

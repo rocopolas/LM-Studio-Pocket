@@ -881,7 +881,8 @@ body {
 /* Stats bar */
 .message-stats {
   display: flex;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--border-color);
@@ -889,10 +890,33 @@ body {
   color: var(--text-muted);
 }
 
+.stats-data {
+  display: flex;
+  gap: 12px;
+}
+
 .message-stats span {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.btn-copy-msg {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.btn-copy-msg:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
 }
 
 /* ===== Image Preview Bar ===== */

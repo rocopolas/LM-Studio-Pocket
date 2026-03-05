@@ -7,13 +7,24 @@ import { renderMarkdown } from './markdown.js';
 
 // ===== HTML Builders =====
 
-export function buildStatsHtml(stats) {
-    if (!stats) return '';
-    return `<div class="message-stats">
+export function buildStatsHtml(stats, msgId = null) {
+    if (!stats && !msgId) return '';
+    const statsPart = stats ? `
     <span>⚡ ${stats.tokens_per_second?.toFixed(1) || '?'} t/s</span>
     <span>📝 ${stats.total_output_tokens || '?'} tokens</span>
-    <span>⏱️ ${stats.time_to_first_token_seconds?.toFixed(2) || '?'}s TTFT</span>
-  </div>`;
+    <span>⏱️ ${stats.time_to_first_token_seconds?.toFixed(2) || '?'}s TTFT</span>` : '';
+
+    const copyBtn = msgId ? `<button class="btn-copy-msg" onclick="window.copyMessage('${msgId}', this)" title="Copy Response">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+    </button>` : '';
+
+    return `<div class="message-stats">
+        <div class="stats-data">${statsPart}</div>
+        ${copyBtn}
+    </div>`;
 }
 
 export function buildTypingHtml(label) {
@@ -56,6 +67,31 @@ window.__openLightbox = function (src) {
     document.body.appendChild(lb);
 };
 
+window.copyMessage = function (id, btn) {
+    const conv = state.conversations.find(c => c.id === state.currentConversationId);
+    if (!conv) return;
+    const msg = conv.messages.find(m => m.id === id);
+    if (!msg || !msg.text) return;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(msg.text).then(() => {
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '✓';
+            setTimeout(() => btn.innerHTML = originalHtml, 2000);
+        });
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = msg.text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '✓';
+        setTimeout(() => btn.innerHTML = originalHtml, 2000);
+    }
+};
+
 // ===== Message Rendering =====
 
 export function appendMessageToDOM(msg) {
@@ -85,8 +121,8 @@ export function appendMessageToDOM(msg) {
     }
 
     let statsHtml = '';
-    if (msg.stats) {
-        statsHtml = buildStatsHtml(msg.stats);
+    if (msg.role === 'assistant') {
+        statsHtml = buildStatsHtml(msg.stats, msg.id);
     }
 
     div.innerHTML = `
