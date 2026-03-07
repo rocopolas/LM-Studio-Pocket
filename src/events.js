@@ -6,7 +6,7 @@ import { sendMessage, stopGeneration } from './chat.js';
 import { openSettings, closeSettings, saveSettingsFromForm, updateParamLabels, refreshModels, showModelInfo, testConnection } from './settings.js';
 import { openModelsPanel, closeModelsPanel, refreshModelsPanel, downloadModel } from './models.js';
 import { getCurrentConversation, createConversation, updateConversationTitle, renderChat } from './conversations.js';
-import { toggleModelPicker, closeModelPicker, selectModelForChat, openSidebar, closeSidebar, autoResize, updateSendButton, toggleSearch, updateSearchButton, toggleDeepResearch } from './ui.js';
+import { toggleModelPicker, closeModelPicker, selectModelForChat, openSidebar, closeSidebar, autoResize, updateSendButton, toggleSearch, updateSearchButton, toggleDeepResearch, updateDeepResearchButton } from './ui.js';
 import { addImage } from './images.js';
 import { saveConversations } from './storage.js';
 
@@ -94,6 +94,11 @@ export function initEventListeners() {
             conv.messages = [];
             conv.title = 'New Conversation';
             conv.lastResponseId = null;
+            state.settings.deepResearcherEnabled = false;
+            state.settings.searchEnabled = false;
+            updateSearchButton();
+            if (DOM.btnDeepResearch) updateDeepResearchButton();
+            import('./storage.js').then(m => m.saveSettings());
             saveConversations();
             renderConversationsList();
             renderChat();

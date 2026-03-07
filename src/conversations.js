@@ -3,12 +3,17 @@
 import state from './state.js';
 import { DOM } from './dom.js';
 import { generateId, escapeHtml, formatTime } from './utils.js';
-import { saveConversations } from './storage.js';
-import { appendMessageToDOM, scrollToBottom, updateModelBadge, closeSidebar, updateQueueBadge, updateSendButton } from './ui.js';
+import { saveConversations, saveSettings } from './storage.js';
+import { appendMessageToDOM, scrollToBottom, updateModelBadge, closeSidebar, updateQueueBadge, updateSendButton, updateSearchButton, updateDeepResearchButton } from './ui.js';
 import { renderMarkdown } from './markdown.js';
 import { stopGeneration, tryReconnectStream } from './chat.js';
 
 export function createConversation() {
+    state.settings.deepResearcherEnabled = false;
+    state.settings.searchEnabled = false;
+    saveSettings();
+    updateSearchButton();
+    updateDeepResearchButton();
     const conv = {
         id: generateId(),
         title: 'New Conversation',
