@@ -55,6 +55,9 @@ export const DOM = {
     settingSearchEnabled: $('#setting-search-enabled'),
     settingSearxngUrl: $('#setting-searxng-url'),
     searxngUrlGroup: $('#searxng-url-group'),
+    settingCrawl4aiEnabled: $('#setting-crawl4ai-enabled'),
+    settingCrawl4aiUrl: $('#setting-crawl4ai-url'),
+    crawl4aiUrlGroup: $('#crawl4ai-url-group'),
     // Settings Labels (cached for performance)
     labelTemp: $('#temperature-value'),
     labelTopP: $('#top-p-value'),

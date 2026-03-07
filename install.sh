@@ -57,7 +57,7 @@ ok "Docker daemon is running"
 # ── 2. Install npm dependencies ─────────────────────────────
 echo ""
 info "Installing npm dependencies..."
-npm install
+npm install --legacy-peer-deps
 ok "npm dependencies installed"
 
 # ── 3. Auto-detect LAN IP ───────────────────────────────────
@@ -131,13 +131,45 @@ else
     warn "SearXNG container may not have started correctly. Check with: docker logs ${CONTAINER_NAME}"
 fi
 
-# ── 6. Summary ──────────────────────────────────────────────
+# ── 6. Configure & start Crawl4AI (Docker) ───────────────────
+CRAWL4AI_CONTAINER="crawl4ai-pocket"
+CRAWL4AI_PORT=11235
+
+info "Setting up Crawl4AI..."
+
+if docker ps -a --format '{{.Names}}' | grep -q "^${CRAWL4AI_CONTAINER}$"; then
+    info "Removing existing Crawl4AI container..."
+    docker rm -f "$CRAWL4AI_CONTAINER" &>/dev/null || true
+fi
+
+info "Pulling Crawl4AI Docker image..."
+docker pull unclecode/crawl4ai:latest
+
+info "Starting Crawl4AI container on port ${CRAWL4AI_PORT}..."
+docker run -d \
+    --name "$CRAWL4AI_CONTAINER" \
+    --restart unless-stopped \
+    --shm-size=1g \
+    -p "${CRAWL4AI_PORT}:11235" \
+    unclecode/crawl4ai:latest
+
+# Wait a moment for the container to start
+sleep 2
+
+if docker ps --format '{{.Names}}' | grep -q "^${CRAWL4AI_CONTAINER}$"; then
+    ok "Crawl4AI is running on http://localhost:${CRAWL4AI_PORT}"
+else
+    warn "Crawl4AI container may not have started correctly. Check with: docker logs ${CRAWL4AI_CONTAINER}"
+fi
+
+# ── 7. Summary ──────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}════════════════════════════════════════════════════${NC}"
 echo -e "${GREEN}${BOLD}  ✅ Installation complete!${NC}"
 echo -e "${BOLD}════════════════════════════════════════════════════${NC}"
 echo ""
 echo -e "  ${BOLD}SearXNG${NC}  → http://localhost:${SEARXNG_PORT}"
+echo -e "  ${BOLD}Crawl4AI${NC} → http://localhost:${CRAWL4AI_PORT}"
 echo -e "  ${BOLD}.env${NC}     → VITE_SERVER_URL=http://${LAN_IP}:1234"
 echo ""
 echo -e "  ${BOLD}Next steps:${NC}"
@@ -145,5 +177,5 @@ echo -e "  1. Make sure ${CYAN}LM Studio${NC} is running on your PC (port 1234)"
 echo -e "  2. Start the app:"
 echo -e "     ${CYAN}npm run dev${NC}"
 echo -e "  3. Open ${CYAN}http://${LAN_IP}:5173${NC} on your phone"
-echo -e "  4. Enable ${CYAN}Web Search${NC} in Settings to use SearXNG"
+echo -e "  4. Enable ${CYAN}Web Search${NC} and ${CYAN}Crawl4AI${NC} in Settings to use SearXNG and Crawl4AI"
 echo ""

@@ -136,6 +136,11 @@ export default defineConfig({
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/searxng/, ''),
             },
+            '/crawl4ai': {
+                target: 'http://127.0.0.1:11235',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/crawl4ai/, ''),
+            },
         },
     },
 });

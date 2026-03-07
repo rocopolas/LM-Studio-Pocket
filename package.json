@@ -12,6 +12,7 @@
     "author": "",
     "license": "ISC",
     "devDependencies": {
+        "@vitejs/plugin-basic-ssl": "^2.1.4",
         "vite": "^5.2.0"
     }
 }

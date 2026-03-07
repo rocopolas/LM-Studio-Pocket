@@ -348,6 +348,22 @@
           <input type="url" id="setting-searxng-url" class="form-input" placeholder="http://127.0.0.1:8080"
             value="http://127.0.0.1:8080">
         </div>
+        <p class="settings-hint" style="margin-top: 1rem;">Use Crawl4AI to scrape the full content of search results
+          instead of just summaries.</p>
+        <div class="form-group">
+          <label class="toggle-label">
+            <span>Enable Crawl4AI Scrape</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-crawl4ai-enabled">
+              <span class="toggle-slider"></span>
+            </label>
+          </label>
+        </div>
+        <div class="form-group" id="crawl4ai-url-group">
+          <label for="setting-crawl4ai-url">Crawl4AI URL</label>
+          <input type="url" id="setting-crawl4ai-url" class="form-input" placeholder="http://127.0.0.1:11235"
+            value="http://127.0.0.1:11235">
+        </div>
       </section>
 
       <!-- Parameters -->

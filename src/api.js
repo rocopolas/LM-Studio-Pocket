@@ -80,7 +80,11 @@ export async function sendChatStream(messages, onEvent, searchContext = '') {
     let systemPrompt = '';
 
     if (searchContext) {
-        systemPrompt += `[Web Search Results]\nThe following are recent web search results relevant to the user's query. Use them to provide accurate, up-to-date information. Cite sources using [number] notation when referencing specific results.\n\n${searchContext}\n[/Web Search Results]\n\n`;
+        if (state.settings.crawl4aiEnabled) {
+            systemPrompt += `[Web Search Results]\nThe following contains the FULL SCRAPED TEXT content of the webpages relevant to the user's query (not just summaries). You CAN read the full content of these sites. Use them to provide accurate, up-to-date information. Cite sources using [number] notation when referencing specific results.\n\n${searchContext}\n[/Web Search Results]\n\n`;
+        } else {
+            systemPrompt += `[Web Search Results]\nThe following are recent web search results relevant to the user's query. Use them to provide accurate, up-to-date information. Cite sources using [number] notation when referencing specific results.\n\n${searchContext}\n[/Web Search Results]\n\n`;
+        }
     }
 
     if (state.settings.memoryEnabled && state.settings.memory.trim()) {

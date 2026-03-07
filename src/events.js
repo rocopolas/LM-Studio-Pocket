@@ -67,6 +67,11 @@ export function initEventListeners() {
         DOM.searxngUrlGroup.style.display = DOM.settingSearchEnabled.checked ? '' : 'none';
     });
 
+    // Crawl4AI toggle
+    DOM.settingCrawl4aiEnabled.addEventListener('change', () => {
+        DOM.crawl4aiUrlGroup.style.display = DOM.settingCrawl4aiEnabled.checked ? '' : 'none';
+    });
+
     // Toggle API key visibility
     DOM.btnToggleKey.addEventListener('click', () => {
         const input = DOM.settingApiKey;

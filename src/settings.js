@@ -35,6 +35,11 @@ function populateSettingsForm() {
     DOM.settingSearchEnabled.checked = state.settings.searchEnabled;
     DOM.settingSearxngUrl.value = state.settings.searxngUrl;
     DOM.searxngUrlGroup.style.display = state.settings.searchEnabled ? '' : 'none';
+
+    DOM.settingCrawl4aiEnabled.checked = state.settings.crawl4aiEnabled;
+    DOM.settingCrawl4aiUrl.value = state.settings.crawl4aiUrl;
+    DOM.crawl4aiUrlGroup.style.display = state.settings.crawl4aiEnabled ? '' : 'none';
+
     updateParamLabels();
     populateModelSelect();
 }
@@ -55,6 +60,9 @@ export function saveSettingsFromForm() {
     state.settings.memory = DOM.settingMemory.value;
     state.settings.searchEnabled = DOM.settingSearchEnabled.checked;
     state.settings.searxngUrl = DOM.settingSearxngUrl.value.replace(/\/+$/, '');
+    state.settings.crawl4aiEnabled = DOM.settingCrawl4aiEnabled.checked;
+    state.settings.crawl4aiUrl = DOM.settingCrawl4aiUrl.value.replace(/\/+$/, '');
+
     saveSettings();
     updateModelBadge();
     updateSearchButton();
