@@ -1,6 +1,3 @@
-// ===== localStorage Operations =====
-
-import { CONFIG } from './config.js';
 import state from './state.js';
 
 export async function loadSettings() {
@@ -8,12 +5,12 @@ export async function loadSettings() {
         const resp = await fetch('/api/storage/settings');
         if (resp.ok) {
             const saved = await resp.json();
-            if (Object.keys(saved).length > 0) {
+            if (saved && Object.keys(saved).length > 0) {
                 Object.assign(state.settings, saved);
             }
         }
-    } catch (_) {
-        // Fallback or network error, keep defaults
+    } catch (e) {
+        console.warn('Failed to load settings:', e);
     }
 }
 
@@ -38,8 +35,8 @@ export async function loadConversations() {
                 state.conversations = saved;
             }
         }
-    } catch (_) {
-        // Keep empty array
+    } catch (e) {
+        console.warn('Failed to load conversations:', e);
     }
 }
 

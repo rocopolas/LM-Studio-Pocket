@@ -4,8 +4,9 @@ import state from './state.js';
 import { DOM } from './dom.js';
 import { generateId, escapeHtml, formatTime } from './utils.js';
 import { saveConversations } from './storage.js';
-import { appendMessageToDOM, scrollToBottom, updateModelBadge, closeSidebar } from './ui.js';
+import { appendMessageToDOM, scrollToBottom, updateModelBadge, closeSidebar, updateQueueBadge, updateSendButton } from './ui.js';
 import { renderMarkdown } from './markdown.js';
+import { stopGeneration, tryReconnectStream } from './chat.js';
 
 export function createConversation() {
     const conv = {
@@ -29,6 +30,14 @@ export function getCurrentConversation() {
 }
 
 export function switchConversation(id) {
+    stopGeneration(); // Force-stop any ongoing chat streams
+
+    // Clear queues so messages don't leak into the new tab
+    state.messageQueue = [];
+    state.pendingImages = [];
+    updateQueueBadge();
+    updateSendButton();
+
     state.currentConversationId = id;
     renderConversationsList();
     renderChat();
@@ -102,4 +111,5 @@ export function renderChat() {
     }
 
     updateModelBadge();
+    tryReconnectStream(conv);
 }

@@ -25,6 +25,8 @@ export const DOM = {
     btnAttach: $('#btn-attach'),
     btnSend: $('#btn-send'),
     btnStop: $('#btn-stop'),
+    btnSearch: $('#btn-search'),
+    btnDeepResearch: $('#btn-deep-research'),
     fileInput: $('#file-input'),
     settingsOverlay: $('#settings-overlay'),
     settingsPanel: $('#settings-panel'),
@@ -51,11 +53,9 @@ export const DOM = {
     settingMemory: $('#setting-memory'),
     memoryTextareaGroup: $('#memory-textarea-group'),
     // Search
-    btnSearch: $('#btn-search'),
     settingSearchEnabled: $('#setting-search-enabled'),
     settingSearxngUrl: $('#setting-searxng-url'),
     searxngUrlGroup: $('#searxng-url-group'),
-    settingCrawl4aiEnabled: $('#setting-crawl4ai-enabled'),
     settingCrawl4aiUrl: $('#setting-crawl4ai-url'),
     crawl4aiUrlGroup: $('#crawl4ai-url-group'),
     // Settings Labels (cached for performance)

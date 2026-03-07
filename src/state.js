@@ -21,6 +21,7 @@ const state = {
         searxngUrl: 'http://127.0.0.1:8080',
         crawl4aiEnabled: false,
         crawl4aiUrl: 'http://127.0.0.1:11235',
+        deepResearcherEnabled: false,
     },
     models: [],
     pendingImages: [],    // { dataUrl, name }

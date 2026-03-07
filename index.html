@@ -168,6 +168,13 @@
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
           </svg>
         </button>
+        <button id="btn-deep-research" class="btn-icon btn-deep-research" title="Toggle Deep Researcher">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 2.5 2.5 0 0 1-.3-4.14 2.5 2.5 0 0 1 3.03-3.03A2.5 2.5 0 0 1 9.5 2ZM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 2.5 2.5 0 0 0 .3-4.14 2.5 2.5 0 0 0-3.03-3.03A2.5 2.5 0 0 0 14.5 2Z" />
+          </svg>
+        </button>
         <button id="btn-attach" class="btn-icon btn-attach" title="Attach image">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
@@ -348,17 +355,8 @@
           <input type="url" id="setting-searxng-url" class="form-input" placeholder="http://127.0.0.1:8080"
             value="http://127.0.0.1:8080">
         </div>
-        <p class="settings-hint" style="margin-top: 1rem;">Use Crawl4AI to scrape the full content of search results
-          instead of just summaries.</p>
-        <div class="form-group">
-          <label class="toggle-label">
-            <span>Enable Crawl4AI Scrape</span>
-            <label class="toggle-switch">
-              <input type="checkbox" id="setting-crawl4ai-enabled">
-              <span class="toggle-slider"></span>
-            </label>
-          </label>
-        </div>
+        <p class="settings-hint" style="margin-top: 1rem;">Searches currently utilize <b>Crawl4AI</b> automatically to
+          scrape full markdown whenever invoked.</p>
         <div class="form-group" id="crawl4ai-url-group">
           <label for="setting-crawl4ai-url">Crawl4AI URL</label>
           <input type="url" id="setting-crawl4ai-url" class="form-input" placeholder="http://127.0.0.1:11235"

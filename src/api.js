@@ -18,7 +18,7 @@ export async function fetchModels() {
     if (!state.settings.serverUrl) return [];
 
     // Fetch all downloaded models
-    const urlAll = `/api/proxy/api/v1/models`;
+    const urlAll = `/api/models`;
     const respAll = await fetch(urlAll, { headers: getHeaders() });
     if (!respAll.ok) throw new Error(`HTTP ${respAll.status}`);
 
@@ -28,7 +28,7 @@ export async function fetchModels() {
     return models;
 }
 
-export async function sendChatStream(messages, onEvent, searchContext = '') {
+export async function sendChatStream(messages, onEvent, searchContext = '', conversationId, assistantMsgId) {
     const conv = getCurrentConversation();
     const input = [];
 
@@ -36,18 +36,21 @@ export async function sendChatStream(messages, onEvent, searchContext = '') {
     for (const msg of messages) {
         if (msg.role === 'user') {
             if (msg.images && msg.images.length > 0) {
+                const contentParts = [];
                 for (const img of msg.images) {
-                    input.push({ type: 'image', data_url: img });
+                    contentParts.push({ type: 'image_url', image_url: { url: img } });
                 }
+                contentParts.push({ type: 'text', text: msg.text });
+                input.push({ role: 'user', content: contentParts });
+            } else {
+                input.push({ role: 'user', content: msg.text });
             }
-            input.push({ type: 'text', content: msg.text });
+        } else if (msg.role === 'assistant') {
+            input.push({ role: 'assistant', content: msg.text });
         }
     }
 
     const selectedModelKey = conv?.model || state.settings.model;
-
-    // Check if we have a specific loaded instance for this model to avoid double-loading
-    // in LM Studio (which can happen if we send the generic key when it's already loaded under a specific ID).
     let targetModelId = selectedModelKey;
     if (state.models && state.models.length > 0) {
         const modelInfo = state.models.find(m =>
@@ -56,101 +59,118 @@ export async function sendChatStream(messages, onEvent, searchContext = '') {
             (m.variants && m.variants.some(v => v.includes(selectedModelKey)))
         );
         if (modelInfo) {
-            targetModelId = modelInfo.key; // Always upgrade to full native key
+            targetModelId = modelInfo.key;
             if (modelInfo.loaded_instances && modelInfo.loaded_instances.length > 0) {
                 targetModelId = modelInfo.loaded_instances[0].id;
             }
         }
     }
 
-    const body = {
-        model: targetModelId,
-        input: input,
-        stream: true,
-        temperature: state.settings.temperature,
-        top_p: state.settings.topP,
-        top_k: state.settings.topK,
-        min_p: state.settings.minP,
-        repeat_penalty: state.settings.repeatPenalty,
-        max_output_tokens: state.settings.maxTokens,
-        context_length: state.settings.contextLength,
-    };
+    const isDeepResearch = state.settings.deepResearcherEnabled;
 
-    // Build system prompt: search context + memory + user prompt
     let systemPrompt = '';
-
-    if (searchContext) {
-        if (state.settings.crawl4aiEnabled) {
-            systemPrompt += `[Web Search Results]\nThe following contains the FULL SCRAPED TEXT content of the webpages relevant to the user's query (not just summaries). You CAN read the full content of these sites. Use them to provide accurate, up-to-date information. Cite sources using [number] notation when referencing specific results.\n\n${searchContext}\n[/Web Search Results]\n\n`;
-        } else {
-            systemPrompt += `[Web Search Results]\nThe following are recent web search results relevant to the user's query. Use them to provide accurate, up-to-date information. Cite sources using [number] notation when referencing specific results.\n\n${searchContext}\n[/Web Search Results]\n\n`;
-        }
+    if (isDeepResearch) {
+        systemPrompt += `You are a Deep Autonomous Researcher. 
+Your objective is to write an exhaustive, highly detailed academic report (aiming for ~5 pages or minimum 2000-3000 words) in the exact language of the user's prompt. 
+You MUST cross-reference all the provided sources. 
+For each source you use, you MUST evaluate its credibility using the CRAAP criteria (Currency, Relevance, Authority, Accuracy, Purpose). Mention these evaluations in your analysis where relevant.
+FORMATTING REQUIREMENTS:
+1. Use professional, academic markdown with clear hierarchical headers.
+2. Use APA format for in-text citations (e.g. Author, Year) mapping to the provided sources.
+3. Include a comprehensive 'References' or 'Bibliography' section at the end in full APA format.
+4. If asked an analytical question, explore counter-arguments and synthesize the data from multiple points of view.\n\n`;
+    } else if (state.settings.systemPrompt) {
+        systemPrompt += state.settings.systemPrompt + '\n\n';
     }
 
     if (state.settings.memoryEnabled && state.settings.memory.trim()) {
         systemPrompt += `[User Memory]\n${state.settings.memory.trim()}\n[/User Memory]\n\n`;
     }
-    if (state.settings.memoryEnabled) {
+    if (state.settings.memoryEnabled && !isDeepResearch) {
         systemPrompt += `[Memory Instructions]\nYou have the ability to remember important information about the user across conversations. When the user shares personal details, preferences, or important context, you can acknowledge it naturally (e.g., "I'll remember that"). The memory system works automatically.\n[/Memory Instructions]\n\n`;
     }
-    if (state.settings.systemPrompt) {
-        systemPrompt += state.settings.systemPrompt;
-    }
 
-    if (systemPrompt) {
-        body.system_prompt = systemPrompt;
-    }
-
-    // Use stateful chats: pass previous response ID
-    if (conv && conv.lastResponseId) {
-        body.previous_response_id = conv.lastResponseId;
-        const lastUserMsg = messages[messages.length - 1];
-        body.input = [];
-        if (lastUserMsg.images && lastUserMsg.images.length > 0) {
-            for (const img of lastUserMsg.images) {
-                body.input.push({ type: 'image', data_url: img });
-            }
-        }
-        body.input.push({ type: 'text', content: lastUserMsg.text });
-    }
+    const body = {
+        modelOptions: {
+            model: targetModelId,
+            temperature: state.settings.temperature,
+            topTokens: state.settings.topK,
+            topP: state.settings.topP,
+            minP: state.settings.minP,
+            repeatPenalty: state.settings.repeatPenalty,
+            maxTokens: isDeepResearch ? Math.max(8192, state.settings.maxTokens) : state.settings.maxTokens,
+            deepResearcherEnabled: isDeepResearch
+        },
+        messages: input,
+        systemPrompt: systemPrompt.trim(),
+        conversationId: conversationId,
+        assistantMsgId: assistantMsgId,
+        lmUrl: state.settings.serverUrl,
+        searchContext: searchContext || ''
+    };
 
     state.abortController = new AbortController();
 
-    const resp = await fetch(`/api/proxy/api/v1/chat`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(body),
-        signal: state.abortController.signal,
-    });
+    return new Promise((resolve, reject) => {
+        const es = new EventSource(`/api/stream/${conversationId}`);
+        let fetchStarted = false;
 
-    if (!resp.ok) {
-        const errorText = await resp.text();
-        throw new Error(`HTTP ${resp.status}: ${errorText}`);
-    }
+        es.addEventListener('open', async () => {
+            if (fetchStarted) return;
+            fetchStarted = true;
 
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
+            try {
+                const resp = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                    signal: state.abortController.signal,
+                });
 
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        let currentEvent = null;
-        for (const line of lines) {
-            if (line.startsWith('event: ')) {
-                currentEvent = line.slice(7).trim();
-            } else if (line.startsWith('data: ') && currentEvent) {
-                try {
-                    const data = JSON.parse(line.slice(6));
-                    onEvent(currentEvent, data);
-                } catch (_) { }
-                currentEvent = null;
+                if (!resp.ok) {
+                    const errorText = await resp.text();
+                    es.close();
+                    reject(new Error(`Failed to start backend generation: ${resp.status} - ${errorText}`));
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    es.close();
+                    reject(err);
+                }
             }
-        }
-    }
+        });
+
+        const attachEvent = (eventName) => {
+            es.addEventListener(eventName, (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    onEvent(eventName, data);
+                } catch (e) { }
+
+                if (eventName === 'chat.end') {
+                    es.close();
+                    resolve();
+                } else if (eventName === 'error') {
+                    es.close();
+                    reject(new Error(JSON.parse(event.data).error?.message || 'Stream error'));
+                }
+            });
+        };
+
+        const eventsToListen = [
+            'model_load.start', 'model_load.progress',
+            'reasoning.start', 'reasoning.delta', 'reasoning.end',
+            'message.start', 'message.delta', 'message.end',
+            'prompt_processing.start', 'chat.end', 'error'
+        ];
+
+        eventsToListen.forEach(attachEvent);
+
+        state.abortController.signal.addEventListener('abort', () => {
+            es.close();
+            const abortErr = new Error("Aborted");
+            abortErr.name = 'AbortError';
+            reject(abortErr);
+        });
+    });
 }

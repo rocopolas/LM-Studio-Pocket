@@ -86,6 +86,11 @@ export async function sendMessage() {
 
     updateConversationTitle(conv);
 
+    state.isGenerating = true;
+    state.generatingConvId = conv.id;
+    DOM.btnSend.classList.add('hidden');
+    DOM.btnStop.classList.remove('hidden');
+
     const assistantMsg = {
         id: generateId(),
         role: 'assistant',
@@ -94,6 +99,7 @@ export async function sendMessage() {
         stats: null,
         sources: null,
         timestamp: Date.now(),
+        isComplete: false,
     };
     conv.messages.push(assistantMsg);
     const assistantDiv = appendMessageToDOM(assistantMsg);
@@ -102,12 +108,19 @@ export async function sendMessage() {
     textEl.innerHTML = buildTypingHtml();
     scrollToBottom(true);
 
-    state.isGenerating = true;
-    state.generatingConvId = conv.id;
-    DOM.btnSend.classList.add('hidden');
-    DOM.btnStop.classList.remove('hidden');
+    saveConversations(); // Save immediately so the empty message and user's prompt are safely stored
 
     let messageText = '';
+
+    // Throttled save mechanism to prevent data loss on page reload mid-stream
+    let lastSaveTime = Date.now();
+    const tryAutoSave = () => {
+        const now = Date.now();
+        if (now - lastSaveTime > 1000) { // every 1 second
+            saveConversations();
+            lastSaveTime = now;
+        }
+    };
     let reasoningText = '';
     let isReasoning = false;
     let currentAssistantDiv = assistantDiv;
@@ -147,6 +160,7 @@ export async function sendMessage() {
                     }
                     scrollToBottom();
                 }
+                tryAutoSave();
                 break;
             case 'reasoning.end':
                 isReasoning = false;
@@ -161,14 +175,42 @@ export async function sendMessage() {
                 messageText += data.content || '';
                 assistantMsg.text = messageText;
                 if (domOk()) {
-                    getTextEl().innerHTML = renderMarkdown(messageText);
+                    let textToRender = messageText;
+                    let thinkText = "";
+                    const thinkMatch = textToRender.match(/<think>([\s\S]*?)(?:<\/think>|$)/i);
+                    if (thinkMatch) {
+                        thinkText = thinkMatch[1].trim();
+                        textToRender = textToRender.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').trim();
+                    }
+
+                    const combinedReasoning = reasoningText + (reasoningText && thinkText ? '\n' : '') + thinkText;
+
+                    if (combinedReasoning) {
+                        const contentEl = currentAssistantDiv.querySelector('.message-content');
+                        let reasoningBlock = contentEl.querySelector('.reasoning-block');
+                        if (!reasoningBlock) {
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = buildReasoningHtml(combinedReasoning, true);
+                            reasoningBlock = tempDiv.firstElementChild;
+                            contentEl.insertBefore(reasoningBlock, getTextEl());
+                        } else {
+                            const reasoningContentEl = reasoningBlock.querySelector('.reasoning-content');
+                            if (reasoningContentEl) {
+                                reasoningContentEl.innerHTML = renderMarkdown(combinedReasoning);
+                            }
+                        }
+                    }
+                    getTextEl().innerHTML = renderMarkdown(textToRender);
                     scrollToBottom();
                 }
+                tryAutoSave();
                 break;
             case 'message.end':
                 assistantMsg.text = messageText;
                 break;
             case 'chat.end':
+                assistantMsg.isComplete = true; // Mark as safely finished
+
                 // If reasoning consumed all tokens with no actual response, clear typing indicator
                 if (!messageText && domOk()) {
                     if (reasoningText) {
@@ -223,15 +265,17 @@ export async function sendMessage() {
         }
     };
 
-    const buildMsgs = () => conv.messages.filter(m => m.role === 'user').map(m => ({
-        role: 'user', text: m.text, images: m.images,
-    }));
+    const buildMsgs = () => conv.messages
+        .filter(m => m.id !== assistantMsg.id && (m.role === 'user' || m.role === 'assistant'))
+        .map(m => ({ role: m.role, text: m.text, images: m.images }));
 
-    // Web search (if enabled)
+    // Web search (if enabled or deep researcher enabled)
     let searchContext = '';
-    if (state.settings.searchEnabled) {
+    const isSearching = state.settings.searchEnabled || state.settings.deepResearcherEnabled;
+    if (isSearching) {
         try {
-            if (domOk()) getTextEl().innerHTML = buildTypingHtml('🔍 Searching the web...');
+            const searchMsg = state.settings.deepResearcherEnabled ? '🧠 Deep Researching...' : '🔍 Searching the web...';
+            if (domOk()) getTextEl().innerHTML = buildTypingHtml(searchMsg);
             const searchResult = await searchWeb(text);
             searchContext = searchResult.contextText;
             if (searchResult.results.length > 0) {
@@ -257,7 +301,7 @@ export async function sendMessage() {
                     }
                     await new Promise(r => setTimeout(r, delay));
                 }
-                await sendChatStream(buildMsgs(), onStreamEvent, searchContext);
+                await sendChatStream(buildMsgs(), onStreamEvent, searchContext, conv.id, assistantMsg.id);
                 lastError = null;
                 break;
             } catch (err) {
@@ -321,5 +365,59 @@ export async function sendMessage() {
 export function stopGeneration() {
     if (state.abortController) {
         state.abortController.abort();
+    }
+}
+
+export async function tryReconnectStream(conv) {
+    if (!conv || state.isGenerating) return;
+    const lastMsg = conv.messages[conv.messages.length - 1];
+
+    if (lastMsg && lastMsg.role === 'assistant' && lastMsg.isComplete === false) {
+        state.isGenerating = true;
+        state.generatingConvId = conv.id;
+
+        DOM.btnSend.classList.add('hidden');
+        DOM.btnStop.classList.remove('hidden');
+
+        try {
+            await new Promise((resolve, reject) => {
+                const es = new EventSource(`/api/stream/${conv.id}`);
+
+                es.addEventListener('message.delta', (e) => {
+                    try {
+                        const data = JSON.parse(e.data);
+                        lastMsg.text += data.content || '';
+
+                        const el = document.querySelector(`.message[data-id="${lastMsg.id}"] .message-text`);
+                        if (el) el.innerHTML = renderMarkdown(lastMsg.text);
+                        scrollToBottom();
+                    } catch (err) { }
+                });
+
+                es.addEventListener('chat.end', () => {
+                    lastMsg.isComplete = true;
+                    es.close();
+                    resolve();
+                });
+
+                es.addEventListener('error', (e) => {
+                    es.close();
+                    reject(new Error('Stream dead'));
+                });
+
+                state.abortController = new AbortController();
+                state.abortController.signal.addEventListener('abort', () => {
+                    es.close();
+                    resolve();
+                });
+            });
+        } catch (e) {
+            // Stream was actually dead, leave incomplete badge showing
+        }
+
+        state.isGenerating = false;
+        state.generatingConvId = null;
+        updateSendButton();
+        renderChat();
     }
 }

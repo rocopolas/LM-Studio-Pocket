@@ -10,6 +10,7 @@ export const CONFIG = {
     MEMORY_DELAY_MS: 500,
     SCROLL_THROTTLE_MS: 50,
     SEARCH_MAX_RESULTS: 5,
+    DEEP_RESEARCHER_MAX_RESULTS: 10,
     STORAGE_KEYS: {
         SETTINGS: 'lm-studio-pocket-settings',
         CONVERSATIONS: 'lm-studio-pocket-conversations',

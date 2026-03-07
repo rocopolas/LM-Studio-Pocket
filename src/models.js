@@ -155,7 +155,7 @@ function createModelCard(m) {
 }
 
 async function loadModel(modelKey) {
-    const resp = await fetch(`/api/proxy/api/v1/models/load`, {
+    const resp = await fetch(`/api/models/load`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
@@ -172,7 +172,7 @@ async function loadModel(modelKey) {
 
 async function unloadModel(instanceId) {
 
-    const resp = await fetch(`/api/proxy/api/v1/models/unload`, {
+    const resp = await fetch(`/api/models/unload`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ instance_id: instanceId }),
@@ -199,7 +199,7 @@ export async function downloadModel() {
     DOM.btnDownloadModel.innerHTML = '<div class="spinner"></div> Iniciando...';
 
     try {
-        const resp = await fetch(`/api/proxy/api/v1/models/download`, {
+        const resp = await fetch(`/api/models/download`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(body),
@@ -253,7 +253,7 @@ async function pollDownloadStatus(jobId, modelId) {
     if (!jobEl) return;
 
     try {
-        const resp = await fetch(`/api/proxy/api/v1/models/download/status`, {
+        const resp = await fetch(`/api/models/download/status`, {
             headers: getHeaders(),
         });
         if (!resp.ok) return;

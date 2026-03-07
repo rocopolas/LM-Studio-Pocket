@@ -5,8 +5,8 @@ import state from './state.js';
 import { sendMessage, stopGeneration } from './chat.js';
 import { openSettings, closeSettings, saveSettingsFromForm, updateParamLabels, refreshModels, showModelInfo, testConnection } from './settings.js';
 import { openModelsPanel, closeModelsPanel, refreshModelsPanel, downloadModel } from './models.js';
-import { createConversation, getCurrentConversation, switchConversation, renderConversationsList, renderChat } from './conversations.js';
-import { toggleModelPicker, closeModelPicker, selectModelForChat, openSidebar, closeSidebar, autoResize, updateSendButton, toggleSearch, updateSearchButton } from './ui.js';
+import { getCurrentConversation, createConversation, updateConversationTitle, renderChat } from './conversations.js';
+import { toggleModelPicker, closeModelPicker, selectModelForChat, openSidebar, closeSidebar, autoResize, updateSendButton, toggleSearch, updateSearchButton, toggleDeepResearch } from './ui.js';
 import { addImage } from './images.js';
 import { saveConversations } from './storage.js';
 
@@ -62,14 +62,14 @@ export function initEventListeners() {
     // Search toggle (input bar)
     DOM.btnSearch.addEventListener('click', toggleSearch);
 
+    // Deep research toggle (input bar)
+    if (DOM.btnDeepResearch) {
+        DOM.btnDeepResearch.addEventListener('click', toggleDeepResearch);
+    }
+
     // Search settings toggle
     DOM.settingSearchEnabled.addEventListener('change', () => {
         DOM.searxngUrlGroup.style.display = DOM.settingSearchEnabled.checked ? '' : 'none';
-    });
-
-    // Crawl4AI toggle
-    DOM.settingCrawl4aiEnabled.addEventListener('change', () => {
-        DOM.crawl4aiUrlGroup.style.display = DOM.settingCrawl4aiEnabled.checked ? '' : 'none';
     });
 
     // Toggle API key visibility

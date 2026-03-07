@@ -4,8 +4,9 @@
     "description": "LM Studio Pocket Web Interface",
     "main": "app.js",
     "scripts": {
-        "dev": "vite --host",
+        "dev": "node server/server.mjs & vite --host",
         "build": "vite build",
+        "start:backend": "node server/server.mjs",
         "preview": "vite preview"
     },
     "keywords": [],
@@ -14,5 +15,11 @@
     "devDependencies": {
         "@vitejs/plugin-basic-ssl": "^2.1.4",
         "vite": "^5.2.0"
+    },
+    "dependencies": {
+        "cors": "^2.8.6",
+        "express": "^5.2.1",
+        "node-fetch": "^3.3.2",
+        "sqlite3": "^5.1.7"
     }
 }

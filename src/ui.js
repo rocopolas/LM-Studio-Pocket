@@ -21,9 +21,31 @@ export function buildStatsHtml(stats, msgId = null) {
         </svg>
     </button>` : '';
 
+    const downloadBtn = msgId ? `<button class="btn-copy-msg" onclick="window.downloadDoc('${msgId}', this)" title="Download Document (.doc)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+    </button>` : '';
+
+    const retryBtn = msgId ? `<button class="btn-copy-msg" onclick="window.retryMessage('${msgId}')" title="Retry / Edit Prompt">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <polyline points="3 3 3 8 8 8"></polyline>
+        </svg>
+    </button>` : '';
+
+    const deleteBtn = msgId ? `<button class="btn-copy-msg" onclick="window.deleteMessage('${msgId}')" title="Delete Message">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+    </button>` : '';
+
     return `<div class="message-stats">
         <div class="stats-data">${statsPart}</div>
-        ${copyBtn}
+        <div style="display: flex; gap: 4px;">${retryBtn}${downloadBtn}${copyBtn}${deleteBtn}</div>
     </div>`;
 }
 
@@ -117,6 +139,99 @@ window.copyMessage = function (id, btn) {
     }
 };
 
+window.downloadDoc = function (id, btn) {
+    const conv = state.conversations.find(c => c.id === state.currentConversationId);
+    if (!conv) return;
+    const msg = conv.messages.find(m => m.id === id);
+    if (!msg || !msg.text) return;
+
+    let htmlContent = renderMarkdown(msg.text);
+
+    // Create a complete HTML document that Word / LibreOffice can interpret natively
+    const fullHtml = `
+<!DOCTYPE html>
+<html xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+    <meta charset="utf-8">
+    <title>Deep Research Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #000; padding: 2em; }
+        h1, h2, h3 { color: #2c3e50; margin-top: 1.5em; }
+        p { margin-bottom: 1em; }
+        a { color: #3498db; text-decoration: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+        th, td { padding: 0.5em; border: 1px solid #ddd; }
+        th { background: #f5f6fa; }
+        blockquote { border-left: 4px solid #ccc; margin-left: 0; padding-left: 1em; color: #666; }
+    </style>
+</head>
+<body>
+    ${htmlContent}
+</body>
+</html>`;
+
+    const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const dateStr = new Date().toISOString().split('T')[0];
+    a.download = `Deep_Research_Report_${dateStr}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '✓';
+    setTimeout(() => btn.innerHTML = originalHtml, 2000);
+};
+
+window.deleteMessage = async function (id) {
+    if (!confirm('Are you sure you want to delete this message?')) return;
+    const conv = state.conversations.find(c => c.id === state.currentConversationId);
+    if (!conv) return;
+    const idx = conv.messages.findIndex(m => m.id === id);
+    if (idx !== -1) {
+        conv.messages.splice(idx, 1);
+        const { saveConversations } = await import('./storage.js');
+        const { renderChat } = await import('./conversations.js');
+        saveConversations();
+        renderChat();
+    }
+};
+
+window.retryMessage = async function (id) {
+    const conv = state.conversations.find(c => c.id === state.currentConversationId);
+    if (!conv) return;
+    const idx = conv.messages.findIndex(m => m.id === id);
+    if (idx !== -1) {
+        let userText = '';
+        for (let i = idx - 1; i >= 0; i--) {
+            if (conv.messages[i].role === 'user') {
+                userText = conv.messages[i].text;
+                break;
+            }
+        }
+        conv.messages.splice(idx, 1);
+        const { saveConversations } = await import('./storage.js');
+        const { renderChat } = await import('./conversations.js');
+        saveConversations();
+        renderChat();
+
+        const input = document.querySelector('.message-input');
+        if (input && userText) {
+            input.value = userText;
+            input.focus();
+            autoResize();
+            updateSendButton();
+        }
+    }
+};
+
 // ===== Message Rendering =====
 
 export function appendMessageToDOM(msg) {
@@ -133,21 +248,33 @@ export function appendMessageToDOM(msg) {
         ).join('')}</div>`;
     }
 
-    let reasoningHtml = '';
-    if (msg.reasoning) {
-        reasoningHtml = buildReasoningHtml(msg.reasoning);
+    let extractedReasoning = msg.reasoning || '';
+    let textToRender = msg.text || '';
+    let contentHtml = '';
+
+    if (msg.role === 'assistant') {
+        const thinkMatch = textToRender.match(/<think>([\s\S]*?)(?:<\/think>|$)/i);
+        if (thinkMatch) {
+            extractedReasoning = (extractedReasoning ? extractedReasoning + '\n' : '') + thinkMatch[1].trim();
+            textToRender = textToRender.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '').trim();
+        }
+        contentHtml = renderMarkdown(textToRender);
+    } else {
+        contentHtml = escapeHtml(textToRender).replace(/\n/g, '<br>');
     }
 
-    let contentHtml = '';
-    if (msg.role === 'user') {
-        contentHtml = escapeHtml(msg.text).replace(/\n/g, '<br>');
-    } else {
-        contentHtml = renderMarkdown(msg.text || '');
+    let reasoningHtml = '';
+    if (extractedReasoning) {
+        reasoningHtml = buildReasoningHtml(extractedReasoning);
     }
 
     let statsHtml = '';
+    let interruptedHtml = '';
     if (msg.role === 'assistant') {
         statsHtml = buildStatsHtml(msg.stats, msg.id);
+        if (msg.isComplete === false && !state.isGenerating) {
+            interruptedHtml = `<div class="interrupted-badge" style="color: #f59e0b; font-size: 0.8rem; margin-top: 8px; font-style: italic;">⚠️ Conexión perdida (mensaje incompleto). Usa el botón "Reintentar" abajo.</div>`;
+        }
     }
 
     div.innerHTML = `
@@ -156,6 +283,7 @@ export function appendMessageToDOM(msg) {
       ${imagesHtml}
       ${reasoningHtml}
       <div class="message-text">${contentHtml}</div>
+      ${interruptedHtml}
       ${statsHtml}
     </div>
   `;
@@ -308,5 +436,26 @@ export function toggleSearch() {
     showToast(
         state.settings.searchEnabled ? '🌐 Web search enabled' : '🌐 Web search disabled',
         state.settings.searchEnabled ? 'success' : 'info'
+    );
+}
+
+export function updateDeepResearchButton() {
+    if (!DOM.btnDeepResearch) return;
+    if (state.settings.deepResearcherEnabled) {
+        DOM.btnDeepResearch.classList.add('active');
+        DOM.btnDeepResearch.title = 'Deep Researcher ON — click to disable';
+    } else {
+        DOM.btnDeepResearch.classList.remove('active');
+        DOM.btnDeepResearch.title = 'Deep Researcher OFF — click to enable';
+    }
+}
+
+export function toggleDeepResearch() {
+    state.settings.deepResearcherEnabled = !state.settings.deepResearcherEnabled;
+    saveSettings();
+    updateDeepResearchButton();
+    showToast(
+        state.settings.deepResearcherEnabled ? '🧠 Deep Researcher enabled' : '🧠 Deep Researcher disabled',
+        state.settings.deepResearcherEnabled ? 'success' : 'info'
     );
 }

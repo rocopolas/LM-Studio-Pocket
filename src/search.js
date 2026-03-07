@@ -86,8 +86,12 @@ export async function searchWeb(query) {
     const data = await resp.json();
     const raw = data.results || [];
 
-    // Limit to configured max results (by default 5)
-    let results = raw.slice(0, CONFIG.SEARCH_MAX_RESULTS).map((r, i) => ({
+    // Limit to configured max results depending on mode
+    const maxResults = state.settings.deepResearcherEnabled
+        ? CONFIG.DEEP_RESEARCHER_MAX_RESULTS
+        : CONFIG.SEARCH_MAX_RESULTS;
+
+    let results = raw.slice(0, maxResults).map((r, i) => ({
         index: i + 1,
         title: r.title || '',
         url: r.url || '',
@@ -95,8 +99,8 @@ export async function searchWeb(query) {
         engine: r.engine || '',
     }));
 
-    // 2. Scrape full content with Crawl4AI if enabled
-    if (state.settings.crawl4aiEnabled && results.length > 0) {
+    // 2. Scrape full content with Crawl4AI unconditionally
+    if (results.length > 0) {
         const urlsToScrape = results.map(r => r.url);
         const crawledData = await scrapeUrlsWithCrawl4AI(urlsToScrape);
         if (crawledData) {
