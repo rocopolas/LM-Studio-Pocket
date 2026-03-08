@@ -289,6 +289,7 @@ app.post('/api/chat', async (req, res) => {
         temperature: modelOptions.temperature ?? 0.7,
         max_tokens: modelOptions.maxTokens ?? 2048,
         stream: true,
+        stream_options: { include_usage: true }
     };
 
     try {
@@ -315,6 +316,11 @@ app.post('/api/chat', async (req, res) => {
         let currentText = '';
         let currentReasoning = '';
         let inReasoning = false;
+
+        let startTime = Date.now();
+        let firstTokenTime = null;
+        let tokenCount = 0;
+        let finalUsage = null;
 
         let lastSaveTime = Date.now();
 
@@ -353,10 +359,17 @@ app.post('/api/chat', async (req, res) => {
                     const dataStr = line.slice(6);
                     try {
                         const parsed = JSON.parse(dataStr);
+                        if (parsed.usage) {
+                            finalUsage = parsed.usage;
+                        }
                         if (!parsed.choices || parsed.choices.length === 0) continue;
 
                         const delta = parsed.choices[0].delta;
                         if (!delta) continue;
+
+                        if (firstTokenTime === null && (delta.content || delta.reasoning_content)) {
+                            firstTokenTime = Date.now();
+                        }
 
                         // Reasoning checks (LM Studio proprietary tag)
                         if (delta.reasoning_content !== undefined) {
@@ -366,6 +379,7 @@ app.post('/api/chat', async (req, res) => {
                             }
                             currentReasoning += (delta.reasoning_content || '');
                             sendSseToClient(conversationId, 'reasoning.delta', { content: delta.reasoning_content || '' });
+                            if (delta.reasoning_content) tokenCount++;
                         } else if (inReasoning && !delta.reasoning_content && !delta.content) {
                             inReasoning = false;
                             sendSseToClient(conversationId, 'reasoning.end', {});
@@ -378,6 +392,7 @@ app.post('/api/chat', async (req, res) => {
                             }
                             currentText += (delta.content || '');
                             sendSseToClient(conversationId, 'message.delta', { content: delta.content || '' });
+                            if (delta.content) tokenCount++;
                         }
 
                     } catch (e) {
@@ -397,7 +412,20 @@ app.post('/api/chat', async (req, res) => {
         // Finish state
         await updateDbRecord(true);
         sendSseToClient(conversationId, 'message.end', {});
-        sendSseToClient(conversationId, 'chat.end', { result: { stats: null } });
+        
+        const endTime = Date.now();
+        const ttft = firstTokenTime ? (firstTokenTime - startTime) / 1000 : 0;
+        const totalTokens = finalUsage ? finalUsage.completion_tokens : tokenCount;
+        const totalSeconds = (endTime - (firstTokenTime || startTime)) / 1000;
+        const tps = totalSeconds > 0 ? (totalTokens / totalSeconds) : 0;
+
+        const stats = {
+            time_to_first_token_seconds: ttft,
+            total_output_tokens: totalTokens,
+            tokens_per_second: tps
+        };
+
+        sendSseToClient(conversationId, 'chat.end', { result: { stats } });
 
     } catch (err) {
         console.error('Server side generation error:', err);

@@ -228,9 +228,17 @@ export async function sendMessage() {
                     if (domOk() && assistantMsg.stats) {
                         const statsHtml = buildStatsHtml(assistantMsg.stats, assistantMsg.id);
                         if (statsHtml) {
-                            const statsDiv = document.createElement('div');
-                            statsDiv.innerHTML = statsHtml;
-                            currentAssistantDiv.querySelector('.message-content').appendChild(statsDiv.firstElementChild);
+                            const contentEl = currentAssistantDiv.querySelector('.message-content');
+                            const oldStats = contentEl.querySelector('.message-stats');
+                            if (oldStats) {
+                                const tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = statsHtml;
+                                oldStats.replaceWith(tempDiv.firstElementChild);
+                            } else {
+                                const statsDiv = document.createElement('div');
+                                statsDiv.innerHTML = statsHtml;
+                                contentEl.appendChild(statsDiv.firstElementChild);
+                            }
                         }
                     }
                     // Render search sources
