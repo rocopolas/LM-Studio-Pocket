@@ -241,13 +241,16 @@ export async function sendMessage() {
                             }
                         }
                     }
-                    // Render search sources
+                    // Render search sources (only if not already rendered during search phase)
                     if (domOk() && assistantMsg.sources && assistantMsg.sources.length > 0) {
-                        const sourcesHtml = buildSearchSourcesHtml(assistantMsg.sources);
-                        if (sourcesHtml) {
-                            const sourcesDiv = document.createElement('div');
-                            sourcesDiv.innerHTML = sourcesHtml;
-                            currentAssistantDiv.querySelector('.message-content').appendChild(sourcesDiv.firstElementChild);
+                        const contentEl = currentAssistantDiv.querySelector('.message-content');
+                        if (!contentEl.querySelector('.search-sources')) {
+                            const sourcesHtml = buildSearchSourcesHtml(assistantMsg.sources);
+                            if (sourcesHtml) {
+                                const sourcesDiv = document.createElement('div');
+                                sourcesDiv.innerHTML = sourcesHtml;
+                                contentEl.appendChild(sourcesDiv.firstElementChild);
+                            }
                         }
                     }
                     if (state.settings.memoryEnabled && messageText) {
@@ -294,6 +297,16 @@ export async function sendMessage() {
             searchContext = searchResult.contextText;
             if (searchResult.results.length > 0) {
                 assistantMsg.sources = searchResult.results;
+
+                // Render sources immediately so they appear while the LLM generates
+                if (domOk()) {
+                    const sourcesHtml = buildSearchSourcesHtml(assistantMsg.sources);
+                    if (sourcesHtml) {
+                        const sourcesDiv = document.createElement('div');
+                        sourcesDiv.innerHTML = sourcesHtml;
+                        getTextEl().after(sourcesDiv.firstElementChild);
+                    }
+                }
             }
         } catch (err) {
             console.warn('Web search failed:', err.message);
