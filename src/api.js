@@ -99,6 +99,7 @@ FORMATTING REQUIREMENTS:
             minP: state.settings.minP,
             repeatPenalty: state.settings.repeatPenalty,
             maxTokens: isDeepResearch ? Math.max(8192, state.settings.maxTokens) : state.settings.maxTokens,
+            contextLength: state.settings.contextLength,
             deepResearcherEnabled: isDeepResearch
         },
         messages: input,

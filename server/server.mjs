@@ -254,6 +254,70 @@ app.get('/api/models/download/status', async (req, res) => {
     }
 });
 
+// Ensure model is loaded with the correct context_length before chatting
+async function ensureModelContext(lmUrl, modelName, contextLength, conversationId) {
+    if (!contextLength || !modelName) return modelName;
+
+    try {
+        const modelsResp = await fetch(`${lmUrl}/api/v1/models`);
+        if (!modelsResp.ok) return modelName;
+
+        const modelsData = await modelsResp.json();
+        const allModels = modelsData.models || [];
+
+        // Find the model by key or loaded instance id
+        let modelInfo = null;
+        for (const m of allModels) {
+            if (m.key === modelName) { modelInfo = m; break; }
+            if (m.loaded_instances && m.loaded_instances.some(li => li.id === modelName)) {
+                modelInfo = m; break;
+            }
+        }
+        if (!modelInfo) return modelName; // not found in catalog, let LM Studio handle it
+
+        const loaded = modelInfo.loaded_instances || [];
+
+        if (loaded.length > 0) {
+            const inst = loaded[0];
+            // If already loaded with enough context, just return the instance id
+            if (inst.context_length && inst.context_length >= contextLength) {
+                return inst.id || modelName;
+            }
+
+            // Context too small → unload and reload
+            console.log(`Context mismatch: loaded=${inst.context_length}, configured=${contextLength}. Reloading model...`);
+            sendSseToClient(conversationId, 'model_load.start', {});
+
+            await fetch(`${lmUrl}/api/v1/models/unload`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ instance_id: inst.id })
+            });
+        } else {
+            // Model not loaded at all → load it
+            console.log(`Model not loaded. Loading with context_length=${contextLength}...`);
+            sendSseToClient(conversationId, 'model_load.start', {});
+        }
+
+        // Load model with correct context_length
+        const loadResp = await fetch(`${lmUrl}/api/v1/models/load`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: modelInfo.key, context_length: contextLength })
+        });
+
+        if (loadResp.ok) {
+            const loadData = await loadResp.json();
+            return loadData.id || modelInfo.key;
+        }
+
+        return modelInfo.key;
+    } catch (e) {
+        console.warn('Model context pre-check failed:', e.message);
+        return modelName;
+    }
+}
+
 app.post('/api/chat', async (req, res) => {
     const { modelOptions, messages, systemPrompt, conversationId, assistantMsgId, lmUrl, searchContext } = req.body;
 
@@ -264,6 +328,9 @@ app.post('/api/chat', async (req, res) => {
     let modelName = modelOptions.model;
     const isDeepResearch = modelOptions.deepResearcherEnabled;
     let url = `${lmUrl}/v1/chat/completions`;
+
+    // Ensure model is loaded with the configured context_length
+    modelName = await ensureModelContext(lmUrl, modelName, modelOptions.contextLength, conversationId);
 
     let finalMessages = [];
     let sysContent = systemPrompt || '';
