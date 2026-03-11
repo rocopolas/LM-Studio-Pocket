@@ -51,3 +51,28 @@ export async function saveConversations() {
         console.error('Failed to save conversations:', e);
     }
 }
+
+export async function loadSkills() {
+    try {
+        const resp = await fetch('/api/storage/skills');
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.skills) state.skills = data.skills;
+            if (data && data.activeSkillId) state.activeSkillId = data.activeSkillId;
+        }
+    } catch (e) {
+        console.warn('Failed to load skills:', e);
+    }
+}
+
+export async function saveSkills() {
+    try {
+        await fetch('/api/storage/skills', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skills: state.skills, activeSkillId: state.activeSkillId })
+        });
+    } catch (e) {
+        console.error('Failed to save skills:', e);
+    }
+}

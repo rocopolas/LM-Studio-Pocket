@@ -106,6 +106,16 @@ app.post('/api/storage/conversations', async (req, res) => {
     res.json({ success: true });
 });
 
+app.get('/api/storage/skills', async (req, res) => {
+    const data = await getKV('skills') || { skills: [], activeSkillId: null };
+    res.json(data);
+});
+
+app.post('/api/storage/skills', async (req, res) => {
+    await setKV('skills', req.body);
+    res.json({ success: true });
+});
+
 // SSE active connections list (chatId mapping to Response object)
 const sseClients = new Map();
 

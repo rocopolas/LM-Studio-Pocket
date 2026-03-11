@@ -5,6 +5,7 @@ import state from './state.js';
 import { sendMessage, stopGeneration } from './chat.js';
 import { openSettings, closeSettings, saveSettingsFromForm, updateParamLabels, refreshModels, showModelInfo, testConnection } from './settings.js';
 import { openModelsPanel, closeModelsPanel, refreshModelsPanel, downloadModel } from './models.js';
+import { openSkillsPanel, closeSkillsPanel, addOrUpdateSkill } from './skills.js';
 import { getCurrentConversation, createConversation, updateConversationTitle, renderChat } from './conversations.js';
 import { toggleModelPicker, closeModelPicker, selectModelForChat, openSidebar, closeSidebar, autoResize, updateSendButton, toggleSearch, updateSearchButton, toggleDeepResearch, updateDeepResearchButton } from './ui.js';
 import { addImage } from './images.js';
@@ -36,6 +37,12 @@ export function initEventListeners() {
         refreshModelsPanel();
     });
     DOM.btnDownloadModel.addEventListener('click', downloadModel);
+
+    // Skills panel
+    DOM.btnSkills.addEventListener('click', openSkillsPanel);
+    DOM.btnCloseSkills.addEventListener('click', closeSkillsPanel);
+    DOM.skillsOverlay.addEventListener('click', closeSkillsPanel);
+    DOM.btnAddSkill.addEventListener('click', addOrUpdateSkill);
 
     // Model picker
     DOM.modelBadge.addEventListener('click', (e) => {
@@ -175,6 +182,7 @@ export function initEventListeners() {
         if (e.key === 'Escape') {
             closeSettings();
             closeModelsPanel();
+            closeSkillsPanel();
             closeSidebar();
         }
     });

@@ -2,6 +2,7 @@
 
 import state from './state.js';
 import { getCurrentConversation } from './conversations.js';
+import { getActiveSkillPrompt } from './skills.js';
 
 export function getHeaders() {
     const headers = {
@@ -79,8 +80,15 @@ FORMATTING REQUIREMENTS:
 2. Use APA format for in-text citations (e.g. Author, Year) mapping to the provided sources.
 3. Include a comprehensive 'References' or 'Bibliography' section at the end in full APA format.
 4. If asked an analytical question, explore counter-arguments and synthesize the data from multiple points of view.\n\n`;
-    } else if (state.settings.systemPrompt) {
-        systemPrompt += state.settings.systemPrompt + '\n\n';
+    } else {
+        // Inject active skill prompt (if any) before user's system prompt
+        const skillPrompt = getActiveSkillPrompt();
+        if (skillPrompt) {
+            systemPrompt += skillPrompt + '\n\n';
+        }
+        if (state.settings.systemPrompt) {
+            systemPrompt += state.settings.systemPrompt + '\n\n';
+        }
     }
 
     if (state.settings.memoryEnabled && state.settings.memory.trim()) {

@@ -24,6 +24,8 @@ const state = {
         deepResearcherEnabled: false,
     },
     models: [],
+    skills: [],           // { id, name, emoji, prompt }
+    activeSkillId: null,
     pendingImages: [],    // { dataUrl, name }
     messageQueue: [],     // { text, images: [dataUrl] }
     isGenerating: false,

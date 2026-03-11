@@ -83,4 +83,15 @@ export const DOM = {
     downloadQuantization: $('#download-quantization'),
     btnDownloadModel: $('#btn-download-model'),
     downloadStatus: $('#download-status'),
+    // Skills panel
+    btnSkills: $('#btn-skills'),
+    skillsOverlay: $('#skills-overlay'),
+    skillsPanel: $('#skills-panel'),
+    btnCloseSkills: $('#btn-close-skills'),
+    skillsListContainer: $('#skills-list-container'),
+    skillFormTitle: $('#skill-form-title'),
+    skillName: $('#skill-name'),
+    skillEmoji: $('#skill-emoji'),
+    skillPrompt: $('#skill-prompt'),
+    btnAddSkill: $('#btn-add-skill'),
 };

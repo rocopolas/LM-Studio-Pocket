@@ -565,6 +565,7 @@ body {
   display: flex;
   gap: 12px;
   max-width: 100%;
+  min-width: 0;
   animation: fadeInUp 0.3s ease;
 }
 
@@ -605,6 +606,8 @@ body {
   line-height: 1.6;
   font-size: 0.9rem;
   word-break: break-word;
+  overflow: hidden;
+  min-width: 0;
 }
 
 /* Floating scroll to bottom button */
@@ -775,7 +778,8 @@ body {
 .message-content pre {
   margin: 10px 0;
   border-radius: var(--radius-sm);
-  overflow: hidden;
+  overflow-x: auto;
+  max-width: 100%;
   background: #1a1b26 !important;
   border: 1px solid var(--border-color);
 }
@@ -818,6 +822,82 @@ body {
 .btn-copy-code:hover {
   background: rgba(255, 255, 255, 0.12);
   color: var(--text-primary);
+}
+
+.code-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-preview-html {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 4px;
+  background: rgba(52, 211, 153, 0.1);
+  color: #34d399;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-preview-html:hover {
+  background: rgba(52, 211, 153, 0.2);
+  border-color: rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.2);
+}
+
+/* HTML Preview Modal */
+.html-preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  animation: fadeIn 0.2s ease;
+}
+
+.html-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.btn-close-preview {
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-close-preview:hover {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: var(--error);
+}
+
+.html-preview-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #fff;
 }
 
 .message-content blockquote {
@@ -1977,6 +2057,152 @@ body {
 
 .btn-deep-research.active svg {
   filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.5));
+}
+
+/* ===== Skills ===== */
+.skills-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skill-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  transition: all var(--transition-fast);
+}
+
+.skill-card:hover {
+  border-color: var(--border-accent);
+}
+
+.skill-card.active {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.05), rgba(99, 102, 241, 0.03));
+}
+
+.skill-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.skill-card-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.skill-card-emoji {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.skill-card-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.skill-card-prompt {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.skill-card-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.skill-card-status.active {
+  color: var(--success);
+  background: rgba(52, 211, 153, 0.12);
+}
+
+.skill-card-status.inactive {
+  color: var(--text-muted);
+  background: var(--bg-glass);
+}
+
+.skill-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.skill-card-actions button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.skill-card-actions button:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.btn-skill-activate {
+  border-color: rgba(52, 211, 153, 0.3) !important;
+  color: var(--success) !important;
+}
+
+.btn-skill-activate:hover {
+  background: rgba(52, 211, 153, 0.1) !important;
+}
+
+.btn-skill-edit {
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  color: var(--text-accent) !important;
+}
+
+.btn-skill-edit:hover {
+  background: rgba(99, 102, 241, 0.1) !important;
+}
+
+.btn-skill-delete {
+  border-color: rgba(248, 113, 113, 0.3) !important;
+  color: var(--error) !important;
+}
+
+.btn-skill-delete:hover {
+  background: rgba(248, 113, 113, 0.1) !important;
+}
+
+/* Sidebar Skills button active state */
+.btn-settings.skill-active {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.btn-settings.skill-active svg {
+  stroke: #34d399;
+  filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.4));
 }
 
 /* ===== Search Sources ===== */

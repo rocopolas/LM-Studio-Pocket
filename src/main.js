@@ -1,16 +1,18 @@
 // ===== Application Entry Point =====
 
 import state from './state.js';
-import { loadSettings, loadConversations } from './storage.js';
+import { loadSettings, loadConversations, loadSkills } from './storage.js';
 import { initEventListeners } from './events.js';
 import { renderConversationsList, renderChat } from './conversations.js';
 import { updateModelBadge, updateSearchButton } from './ui.js';
+import { updateSkillBadge } from './skills.js';
 import { fetchModels } from './api.js';
 
 async function init() {
     try {
         await loadSettings();
         await loadConversations();
+        await loadSkills();
     } catch (e) {
         console.error('Failed to initialize storage:', e);
     }
@@ -26,6 +28,7 @@ async function init() {
 
     renderChat();
     updateSearchButton();
+    updateSkillBadge();
 
     // Auto-load models on start
     if (state.settings.serverUrl) {
