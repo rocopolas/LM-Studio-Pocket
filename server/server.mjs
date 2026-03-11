@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import crypto from 'crypto';
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -9,9 +11,64 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());
+
+// --- Security Middleware ---
+
+// Helmet: sets security headers (X-Content-Type-Options, X-Frame-Options, etc.)
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "https://fonts.googleapis.com"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            connectSrc: ["'self'", "http://localhost:*", "http://127.0.0.1:*", "ws://localhost:*", "wss://localhost:*"],
+            frameSrc: ["'self'", "blob:"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+        }
+    },
+    crossOriginEmbedderPolicy: false
+}));
+
+// CORS: restrict to same-origin (front + back on same machine)
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// --- CSRF Protection ---
+const csrfTokens = new Map(); // token -> timestamp
+
+function generateCsrfToken() {
+    const token = crypto.randomBytes(32).toString('hex');
+    csrfTokens.set(token, Date.now());
+    // Clean old tokens (older than 24h)
+    for (const [t, ts] of csrfTokens) {
+        if (Date.now() - ts > 86400000) csrfTokens.delete(t);
+    }
+    return token;
+}
+
+// Endpoint to get a CSRF token
+app.get('/api/csrf-token', (req, res) => {
+    const token = generateCsrfToken();
+    res.json({ token });
+});
+
+// Validate CSRF token on all POST/PUT/DELETE requests
+app.use((req, res, next) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+    const token = req.headers['x-csrf-token'];
+    if (!token || !csrfTokens.has(token)) {
+        return res.status(403).json({ error: 'Invalid or missing CSRF token' });
+    }
+    next();
+});
 
 // Ensure data dir exists
 const dataDir = path.resolve(__dirname, '..', 'data');

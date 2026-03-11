@@ -7,12 +7,14 @@ import { renderConversationsList, renderChat } from './conversations.js';
 import { updateModelBadge, updateSearchButton } from './ui.js';
 import { updateSkillBadge } from './skills.js';
 import { fetchModels } from './api.js';
+import { getCsrfToken } from './csrf.js';
 
 async function init() {
     try {
         await loadSettings();
         await loadConversations();
         await loadSkills();
+        getCsrfToken(); // Pre-fetch CSRF token
     } catch (e) {
         console.error('Failed to initialize storage:', e);
     }

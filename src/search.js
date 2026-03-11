@@ -2,6 +2,7 @@
 
 import { CONFIG } from './config.js';
 import state from './state.js';
+import { secureFetch } from './csrf.js';
 
 export async function scrapeUrlsWithCrawl4AI(urls) {
     const crawlUrl = state.settings.crawl4aiUrl;
@@ -150,7 +151,7 @@ export async function generateSearchQueries(text) {
     }
 
     try {
-        const resp = await fetch('/api/generate-queries', {
+        const resp = await secureFetch('/api/generate-queries', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

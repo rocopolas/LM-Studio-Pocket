@@ -7,6 +7,7 @@ import { saveSettings } from './storage.js';
 import { fetchModels, getHeaders } from './api.js';
 import { updateModelBadge } from './ui.js';
 import { populateModelSelect } from './settings.js';
+import { secureFetch } from './csrf.js';
 
 export function openModelsPanel() {
     DOM.modelsPanel.classList.add('active');
@@ -155,7 +156,7 @@ function createModelCard(m) {
 }
 
 async function loadModel(modelKey) {
-    const resp = await fetch(`/api/models/load`, {
+    const resp = await secureFetch(`/api/models/load`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
@@ -172,7 +173,7 @@ async function loadModel(modelKey) {
 
 async function unloadModel(instanceId) {
 
-    const resp = await fetch(`/api/models/unload`, {
+    const resp = await secureFetch(`/api/models/unload`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ instance_id: instanceId }),
@@ -199,7 +200,7 @@ export async function downloadModel() {
     DOM.btnDownloadModel.innerHTML = '<div class="spinner"></div> Iniciando...';
 
     try {
-        const resp = await fetch(`/api/models/download`, {
+        const resp = await secureFetch(`/api/models/download`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(body),

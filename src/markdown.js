@@ -39,7 +39,16 @@ function _highlightCode(code, lang) {
 export function renderMarkdown(text) {
     if (typeof marked === 'undefined') return escapeHtml(text).replace(/\n/g, '<br>');
     _initMarked();
-    return marked.parse(text, { renderer: _markedRenderer });
+    const raw = marked.parse(text, { renderer: _markedRenderer });
+    // Sanitize to prevent XSS — allow safe HTML tags, block scripts/event handlers
+    if (typeof DOMPurify !== 'undefined') {
+        return DOMPurify.sanitize(raw, {
+            ADD_TAGS: ['iframe'],
+            ADD_ATTR: ['target', 'rel', 'class', 'onclick', 'srcdoc', 'sandbox'],
+            ALLOW_DATA_ATTR: false,
+        });
+    }
+    return raw;
 }
 
 // Global handler for copy code buttons
@@ -83,7 +92,7 @@ window.__previewHtml = function (event) {
             <span>HTML Preview</span>
             <button class="btn-close-preview" onclick="this.closest('.html-preview-modal').remove()">✕ Close</button>
         </div>
-        <iframe class="html-preview-iframe" sandbox="allow-scripts allow-same-origin" srcdoc=""></iframe>
+        <iframe class="html-preview-iframe" sandbox="allow-scripts" srcdoc=""></iframe>
     `;
     document.body.appendChild(modal);
 

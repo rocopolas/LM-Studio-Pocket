@@ -19,6 +19,7 @@
     "dependencies": {
         "cors": "^2.8.6",
         "express": "^5.2.1",
+        "helmet": "^8.1.0",
         "node-fetch": "^3.3.2",
         "sqlite3": "^5.1.7"
     }

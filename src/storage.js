@@ -1,4 +1,5 @@
 import state from './state.js';
+import { secureFetch } from './csrf.js';
 
 export async function loadSettings() {
     try {
@@ -16,7 +17,7 @@ export async function loadSettings() {
 
 export async function saveSettings() {
     try {
-        await fetch('/api/storage/settings', {
+        await secureFetch('/api/storage/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(state.settings)
@@ -42,7 +43,7 @@ export async function loadConversations() {
 
 export async function saveConversations() {
     try {
-        await fetch('/api/storage/conversations', {
+        await secureFetch('/api/storage/conversations', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(state.conversations)
@@ -67,7 +68,7 @@ export async function loadSkills() {
 
 export async function saveSkills() {
     try {
-        await fetch('/api/storage/skills', {
+        await secureFetch('/api/storage/skills', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skills: state.skills, activeSkillId: state.activeSkillId })

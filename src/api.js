@@ -3,6 +3,7 @@
 import state from './state.js';
 import { getCurrentConversation } from './conversations.js';
 import { getActiveSkillPrompt } from './skills.js';
+import { secureFetch } from './csrf.js';
 
 export function getHeaders() {
     const headers = {
@@ -129,7 +130,7 @@ FORMATTING REQUIREMENTS:
             fetchStarted = true;
 
             try {
-                const resp = await fetch('/api/chat', {
+                const resp = await secureFetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
