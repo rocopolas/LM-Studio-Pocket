@@ -11,7 +11,7 @@ import { getCurrentConversation, createConversation, updateConversationTitle, re
 import { appendMessageToDOM, scrollToBottom, buildTypingHtml, buildStatsHtml, buildReasoningHtml, buildSearchSourcesHtml, getActiveModel, updateSendButton, updateQueueBadge } from './ui.js';
 import { renderImagePreviews } from './images.js';
 import { extractAndSaveMemory } from './memory.js';
-import { searchWeb } from './search.js';
+import { generateSearchQueries, searchWebMultiQuery } from './search.js';
 
 export async function sendMessage() {
     const text = DOM.messageInput.value.trim();
@@ -282,9 +282,15 @@ export async function sendMessage() {
     const isSearching = state.settings.searchEnabled || state.settings.deepResearcherEnabled;
     if (isSearching) {
         try {
+            // Step 1: Use the LLM to interpret the prompt and generate optimized queries
+            if (domOk()) getTextEl().innerHTML = buildTypingHtml('🧠 Analyzing query...');
+            const queries = await generateSearchQueries(text);
+            console.log('Generated search queries:', queries);
+
+            // Step 2: Search with each optimized query and combine results
             const searchMsg = state.settings.deepResearcherEnabled ? '🧠 Deep Researching...' : '🔍 Searching the web...';
             if (domOk()) getTextEl().innerHTML = buildTypingHtml(searchMsg);
-            const searchResult = await searchWeb(text);
+            const searchResult = await searchWebMultiQuery(queries);
             searchContext = searchResult.contextText;
             if (searchResult.results.length > 0) {
                 assistantMsg.sources = searchResult.results;

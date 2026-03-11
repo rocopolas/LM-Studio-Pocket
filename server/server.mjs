@@ -254,6 +254,85 @@ app.get('/api/models/download/status', async (req, res) => {
     }
 });
 
+// Generate optimized search queries from a user prompt using the LLM
+app.post('/api/generate-queries', async (req, res) => {
+    const { prompt, model, lmUrl, contextLength } = req.body;
+
+    if (!prompt || !model || !lmUrl) {
+        return res.json({ queries: [prompt || ''] });
+    }
+
+    // Ensure model is loaded with correct context
+    let resolvedModel = model;
+    try {
+        resolvedModel = await ensureModelContext(lmUrl, model, contextLength, null);
+    } catch (e) { /* ignore, try anyway */ }
+
+    const systemPrompt = `You are a search query optimizer. Given the user's message, generate 2 to 3 concise, effective web search queries that would find the most relevant and accurate information to answer the user's question.
+
+Rules:
+- Return ONLY a valid JSON array of query strings, absolutely no other text before or after it.
+- Queries MUST be in the same language as the user's message.
+- Each query should approach the question from a different angle or target a different aspect.
+- Keep queries concise, specific, and search-engine friendly (no full sentences, use keywords).
+- If the user's message is already a good search query, you can include it as one of the queries.
+
+Example — User: "How long does the Logitech G305 battery last when it blinks red?"
+Output: ["Logitech G305 battery life red blinking", "Logitech G305 low battery indicator meaning", "Logitech G305 replace battery guide"]`;
+
+    const payload = {
+        model: resolvedModel,
+        messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+        ],
+        temperature: 0.2,
+        max_tokens: 300,
+        stream: false
+    };
+
+    try {
+        const response = await fetch(`${lmUrl}/v1/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            console.warn(`Query generation LLM error: ${response.status}`);
+            return res.json({ queries: [prompt] });
+        }
+
+        const data = await response.json();
+        let content = data.choices?.[0]?.message?.content || '';
+
+        // Strip reasoning/think tags that some models produce
+        content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+        // Extract JSON array from the response
+        let queries = [];
+        try {
+            const jsonMatch = content.match(/\[[\s\S]*?\]/);
+            if (jsonMatch) {
+                queries = JSON.parse(jsonMatch[0]);
+                // Filter to only valid strings
+                queries = queries.filter(q => typeof q === 'string' && q.trim().length > 0);
+            }
+        } catch (parseErr) {
+            console.warn('Query JSON parse failed:', parseErr.message, 'Raw:', content);
+        }
+
+        // Fallback to original prompt if parsing failed
+        if (!queries.length) queries = [prompt];
+
+        console.log(`Generated search queries for "${prompt.slice(0, 60)}...":`, queries);
+        res.json({ queries });
+    } catch (err) {
+        console.error('Query generation error:', err.message);
+        res.json({ queries: [prompt] });
+    }
+});
+
 // Ensure model is loaded with the correct context_length before chatting
 async function ensureModelContext(lmUrl, modelName, contextLength, conversationId) {
     if (!contextLength || !modelName) return modelName;
@@ -279,13 +358,21 @@ async function ensureModelContext(lmUrl, modelName, contextLength, conversationI
 
         if (loaded.length > 0) {
             const inst = loaded[0];
-            // If already loaded with enough context, just return the instance id
-            if (inst.context_length && inst.context_length >= contextLength) {
+            // context_length lives inside inst.config
+            const instCtx = inst.config?.context_length ?? inst.context_length;
+
+            if (instCtx === undefined || instCtx === null) {
+                // Can't determine loaded context — assume it's fine, skip reload
+                return inst.id || modelName;
+            }
+
+            if (instCtx >= contextLength) {
+                // Already loaded with enough context
                 return inst.id || modelName;
             }
 
             // Context too small → unload and reload
-            console.log(`Context mismatch: loaded=${inst.context_length}, configured=${contextLength}. Reloading model...`);
+            console.log(`Context mismatch: loaded=${instCtx}, configured=${contextLength}. Reloading model...`);
             sendSseToClient(conversationId, 'model_load.start', {});
 
             await fetch(`${lmUrl}/api/v1/models/unload`, {
